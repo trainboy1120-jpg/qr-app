@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRコード作業管理</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#111;min-height:100vh}
+.app{max-width:960px;margin:0 auto;padding:1.5rem 1rem}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid rgba(0,0,0,0.1)}
+.header h1{font-size:18px;font-weight:600}
+.header .sub{font-size:13px;color:#666;margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid rgba(0,0,0,0.2);background:transparent;color:#111;font-size:13px;cursor:pointer;transition:all 0.15s;font-family:inherit}
+.btn:hover{background:rgba(0,0,0,0.05)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn-primary{background:#111;color:#fff;border-color:transparent}
+.btn-primary:hover{background:#333}
+.btn-danger{color:#a32d2d;border-color:rgba(163,45,45,0.3)}
+.btn-danger:hover{background:rgba(163,45,45,0.08)}
+.btn-green{background:#0F6E56;color:#fff;border-color:transparent}
+.btn-green:hover{background:#0a5240}
+.tabs{display:flex;gap:4px;margin-bottom:1.5rem;background:rgba(0,0,0,0.06);padding:4px;border-radius:10px}
+.tab{flex:1;padding:7px 12px;border:none;background:transparent;border-radius:7px;font-size:13px;cursor:pointer;color:#666;transition:all 0.15s;font-family:inherit}
+.tab.active{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.card{background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:12px;padding:1.25rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:9px 12px;border:1px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#111;font-size:14px;font-family:inherit;outline:none;transition:border 0.15s}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:#111;box-shadow:0 0 0 3px rgba(0,0,0,0.06)}
+.form-group textarea{resize:vertical;min-height:72px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.qr-card{background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s}
+.qr-card:hover{border-color:rgba(0,0,0,0.3);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.qr-preview{width:100%;aspect-ratio:1;border-radius:8px;background:#f0f0ec;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.qr-preview canvas{max-width:88%;max-height:88%}
+.qr-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qr-url{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qr-footer{display:flex;align-items:center;justify-content:space-between}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#e6f1fb;color:#0c447c}
+.qr-date{font-size:11px;color:#aaa}
+.empty{text-align:center;padding:3rem 1rem;color:#888}
+.empty-icon{font-size:48px;margin-bottom:1rem;opacity:0.3}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+.stat-card{background:rgba(0,0,0,0.04);border-radius:8px;padding:0.875rem 1rem}
+.stat-label{font-size:12px;color:#666;margin-bottom:4px}
+.stat-val{font-size:26px;font-weight:600}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:999;padding:1rem}
+.modal{background:#fff;border-radius:16px;padding:1.5rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.modal-header h2{font-size:16px;font-weight:600}
+.close-btn{background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;padding:2px 6px;border-radius:6px}
+.close-btn:hover{background:rgba(0,0,0,0.06)}
+.detail-qr{display:flex;justify-content:center;margin-bottom:1rem}
+.detail-qr canvas{border-radius:10px;border:1px solid rgba(0,0,0,0.08)}
+.sep{height:1px;background:rgba(0,0,0,0.08);margin:1rem 0}
+.info-row{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;font-size:13px;gap:12px}
+.info-row .lbl{color:#888;flex-shrink:0}
+.info-row .val{text-align:right;word-break:break-all}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9999;pointer-events:none;animation:fadeup 0.2s ease}
+@keyframes fadeup{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+.log-item{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px;margin-bottom:8px}
+.log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.log-worker{font-size:13px;font-weight:600}
+.log-time{font-size:11px;color:#aaa}
+.log-qr{font-size:12px;color:#185FA5;margin-bottom:4px}
+.log-comment{font-size:13px;color:#444}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#0F6E56;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.color-row{display:flex;gap:8px;flex-wrap:wrap}
+.cswatch{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:transform 0.1s}
+.cswatch:hover{transform:scale(1.1)}
+.cswatch.on{border-color:#111;box-shadow:0 0 0 1px #fff inset}
+.search-wrap{position:relative;margin-bottom:1rem}
+.search-wrap input{padding-left:36px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#888;font-size:15px;pointer-events:none}
+.scan-modal-qr{font-size:13px;font-weight:600;color:#185FA5;background:#e6f1fb;padding:8px 12px;border-radius:8px;margin-bottom:1rem;word-break:break-all}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 6px;border-bottom:1px solid rgba(0,0,0,0.1);font-weight:600;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.04em}
+td{padding:10px 6px;border-bottom:1px solid rgba(0,0,0,0.07)}
+tr:last-child td{border-bottom:none}
+@media(max-width:600px){.stat-row{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const SUPABASE_URL = 'https://uaxyskjcvfpzuobfcynx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVheHlza2pjdmZwenVvYmZjeW54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDA1ODYsImV4cCI6MjA5NTgxNjU4Nn0.ybjRpDFJZTer4-rhaIwvPz6Xo1QYA2qluuUkpk0X62g';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const{useState,useEffect,useRef,useCallback}=React;
+const COLORS=['#111111','#185FA5','#0F6E56','#993C1D','#993556','#3B6D11','#854F0B','#6B21A8'];
+const CNAMES=['黒','青','緑','橙','ピンク','草','琥珀','紫'];
+
+function fmtDT(iso){if(!iso)return'—';const d=new Date(iso);return d.toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'})}
+
+function QRCanvas({text,color='#111111',size=160,canvasId}){
+  const ref=useRef(null);
+  useEffect(()=>{
+    if(!ref.current||!text)return;
+    QRCode.toCanvas(ref.current,text,{width:size,margin:1,color:{dark:color,light:'#ffffff'}},()=>{});
+  },[text,color,size]);
+  return React.createElement('canvas',{ref,id:canvasId||undefined});
+}
+
+function Toast({msg,onDone}){
+  useEffect(()=>{const t=setTimeout(onDone,2200);return()=>clearTimeout(t)},[]);
+  return React.createElement('div',{className:'toast'},msg);
+}
+
+function App(){
+  const[qrCodes,setQrCodes]=useState([]);
+  const[logs,setLogs]=useState([]);
+  const[tab,setTab]=useState('list');
+  const[showCreate,setShowCreate]=useState(false);
+  const[detail,setDetail]=useState(null);
+  const[showScan,setShowScan]=useState(null);
+  const[search,setSearch]=useState('');
+  const[toast,setToast]=useState(null);
+  const[loading,setLoading]=useState(true);
+
+  const notify=(msg)=>setToast(msg);
+
+  const fetchQR=useCallback(async()=>{
+    const{data}=await supabase.from('qr_codes').select('*').order('created_at',{ascending:false});
+    if(data)setQrCodes(data);
+  },[]);
+
+  const fetchLogs=useCallback(async()=>{
+    const{data}=await supabase.from('scan_logs').select('*').order('scanned_at',{ascending:false}).limit(100);
+    if(data)setLogs(data);
+  },[]);
+
+  useEffect(()=>{
+    (async()=>{
+      await Promise.all([fetchQR(),fetchLogs()]);
+      setLoading(false);
+    })();
+    const ch1=supabase.channel('qr_codes').on('postgres_changes',{event:'*',schema:'public',table:'qr_codes'},()=>fetchQR()).subscribe();
+    const ch2=supabase.channel('scan_logs').on('postgres_changes',{event:'*',schema:'public',table:'scan_logs'},()=>fetchLogs()).subscribe();
+    return()=>{supabase.removeChannel(ch1);supabase.removeChannel(ch2)};
+  },[fetchQR,fetchLogs]);
+
+  const handleCreate=async(data)=>{
+    const{error}=await supabase.from('qr_codes').insert({title:data.title,url:data.url,note:data.note,color:data.color,scans:0});
+    if(error){notify('エラー: '+error.message);return;}
+    setShowCreate(false);
+    notify('✓ QRコードを作成しました');
+  };
+
+  const handleDelete=async(id)=>{
+    await supabase.from('scan_logs').delete().eq('qr_code_id',id);
+    await supabase.from('qr_codes').delete().eq('id',id);
+    setDetail(null);
+    notify('削除しました');
+  };
+
+  const handleScanSubmit=async(qrId,workerName,comment)=>{
+    const qr=qrCodes.find(q=>q.id===qrId);
+    if(!qr)return;
+    await supabase.from('scan_logs').insert({qr_code_id:qrId,worker_name:workerName,comment});
+    await supabase.from('qr_codes').update({scans:(qr.scans||0)+1}).eq('id',qrId);
+    setShowScan(null);
+    notify('✓ 作業を記録しました');
+  };
+
+  const handleDownload=(item)=>{
+    const c=document.getElementById('qr-detail-cv');
+    if(!c)return;
+    const a=document.createElement('a');
+    a.download=(item.title||'qrcode')+'.png';
+    a.href=c.toDataURL('image/png');
+    a.click();
+    notify('✓ ダウンロードしました');
+  };
+
+  const filtered=qrCodes.filter(i=>!search||(i.title+i.url+(i.note||'')).toLowerCase().includes(search.toLowerCase()));
+  const totalScans=qrCodes.reduce((s,i)=>s+(i.scans||0),0);
+  const todayLogs=logs.filter(l=>{const d=new Date(l.scanned_at),n=new Date();return d.toDateString()===n.toDateString()}).length;
+
+  if(loading)return React.createElement('div',{className:'app'},React.createElement('div',{className:'empty'},React.createElement('div',{className:'empty-icon'},'⏳'),'読み込み中...'));
+
+  return React.createElement('div',{className:'app'},
+    React.createElement('div',{className:'header'},
+      React.createElement('div',null,
+        React.createElement('h1',null,'QRコード作業管理'),
+        React.createElement('div',{className:'sub'},
+          React.createElement('span',{className:'live-dot'}),
+          'リアルタイム同期中')),
+      React.createElement('button',{className:'btn btn-primary',onClick:()=>setShowCreate(true)},'＋ 新規作成')),
+    React.createElement('div',{className:'stat-row'},
+      [['QRコード数',qrCodes.length],['総スキャン数',totalScans],['今日の作業',todayLogs],['作業履歴',logs.length]].map(([l,v])=>
+        React.createElement('div',{key:l,className:'stat-card'},
+          React.createElement('div',{className:'stat-label'},l),
+          React.createElement('div',{className:'stat-val'},v)))),
+    React.createElement('div',{className:'tabs'},
+      [['list','QRコード一覧'],['logs','作業履歴'],['stats','統計']].map(([k,label])=>
+        React.createElement('button',{key:k,className:'tab'+(tab===k?' active':''),onClick:()=>setTab(k)},label))),
+    tab==='list'&&React.createElement('div',null,
+      React.createElement('div',{className:'search-wrap'},
+        React.createElement('span',{className:'search-icon'},'🔍'),
+        React.createElement('input',{type:'text',placeholder:'タイトル・URLで検索...',value:search,onChange:e=>setSearch(e.target.value)})),
+      filtered.length===0?
+        React.createElement('div',{className:'empty'},React.createElement('div',{className:'empty-icon'},'□'),search?'検索結果がありません':'QRコードがまだありません'):
+        React.createElement('div',{className:'grid'},
+          filtered.map(item=>React.createElement('div',{key:item.id,className:'qr-card'},
+            React.createElement('div',{className:'qr-preview',onClick:()=>setDetail(item)},
+              React.createElement(QRCanvas,{text:item.url||' ',color:item.color,size:140})),
+            React.createElement('div',{className:'qr-title',onClick:()=>setDetail(item)},item.title||'無題'),
+            React.createElement('div',{className:'qr-url',onClick:()=>setDetail(item)},item.url),
+            React.createElement('div',{className:'qr-footer'},
+              React.createElement('span',{className:'badge'},(item.scans||0)+' スキャン'),
+              React.createElement('span',{className:'qr-date'},fmtDate(item.created_at))),
+            React.createElement('button',{className:'btn btn-green',style:{width:'100%',justifyContent:'center',marginTop:4},onClick:()=>setShowScan(item)},'📋 作業記録'))))),
+    tab==='logs'&&React.createElement('div',null,
+      logs.length===0?React.createElement('div',{className:'empty'},React.createElement('div',{className:'empty-icon'},'📋'),'作業履歴がありません'):
+      logs.map(log=>{
+        const qr=qrCodes.find(q=>q.id===log.qr_code_id);
+        return React.createElement('div',{key:log.id,className:'log-item'},
+          React.createElement('div',{className:'log-header'},
+            React.createElement('span',{className:'log-worker'},'👤 '+(log.worker_name||'名前なし')),
+            React.createElement('span',{className:'log-time'},fmtDT(log.scanned_at))),
+          React.createElement('div',{className:'log-qr'},'📍 '+(qr?qr.title:'不明なQR')),
+          log.comment&&React.createElement('div',{className:'log-comment'},log.comment))
+      })),
+    tab==='stats'&&React.createElement('div',{className:'card'},
+      qrCodes.length===0?React.createElement('div',{className:'empty'},React.createElement('div',{className:'empty-icon'},'📊'),'データがありません'):
+      React.createElement('table',null,
+        React.createElement('thead',null,
+          React.createElement('tr',null,
+            ['タイトル','URL','スキャン数','作成日'].map(h=>React.createElement('th',{key:h},h)))),
+        React.createElement('tbody',null,
+          [...qrCodes].sort((a,b)=>(b.scans||0)-(a.scans||0)).map(item=>
+            React.createElement('tr',{key:item.id,style:{cursor:'pointer'},onClick:()=>{setDetail(item);setTab('list')}},
+              React.createElement('td',{style:{fontWeight:600}},item.title||'無題'),
+              React.createElement('td',{style:{color:'#888',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},item.url),
+              React.createElement('td',{style:{fontWeight:600}},item.scans||0),
+              React.createElement('td',{style:{color:'#888'}},fmtDate(item.created_at))))))),
+    showCreate&&React.createElement(CreateModal,{onClose:()=>setShowCreate(false),onCreate:handleCreate}),
+    detail&&React.createElement(DetailModal,{item:detail,logs:logs.filter(l=>l.qr_code_id===detail.id),onClose:()=>setDetail(null),onDelete:handleDelete,onDownload:handleDownload,onScan:()=>{setShowScan(detail);setDetail(null)}}),
+    showScan&&React.createElement(ScanModal,{item:showScan,onClose:()=>setShowScan(null),onSubmit:handleScanSubmit}),
+    toast&&React.createElement(Toast,{key:toast+Date.now(),msg:toast,onDone:()=>setToast(null)})
+  );
+}
+
+function CreateModal({onClose,onCreate}){
+  const[title,setTitle]=useState('');
+  const[url,setUrl]=useState('');
+  const[note,setNote]=useState('');
+  const[color,setColor]=useState(COLORS[0]);
+  const[saving,setSaving]=useState(false);
+  const previewUrl=url.trim()?(/^https?:\/\//i.test(url)?url:'https://'+url):null;
+  const submit=async()=>{
+    if(!url.trim())return;
+    setSaving(true);
+    const u=/^https?:\/\//i.test(url.trim())?url.trim():'https://'+url.trim();
+    await onCreate({title:title.trim()||u,url:u,note:note.trim(),color});
+    setSaving(false);
+  };
+  return React.createElement('div',{className:'overlay',onClick:e=>e.target===e.currentTarget&&onClose()},
+    React.createElement('div',{className:'modal'},
+      React.createElement('div',{className:'modal-header'},
+        React.createElement('h2',null,'新規QRコード作成'),
+        React.createElement('button',{className:'close-btn',onClick:onClose},'×')),
+      React.createElement('div',{className:'form-group'},
+        React.createElement('label',null,'タイトル'),
+        React.createElement('input',{type:'text',placeholder:'例：A棟1階 点検箇所',value:title,onChange:e=>setTitle(e.target.value),autoFocus:true})),
+      React.createElement('div',{className:'form-group'},
+        React.createElement('label',null,'URL ＊'),
+        React.createElement('input',{type:'text',placeholder:'https://example.com',value:url,onChange:e=>setUrl(e.target.value)})),
+      React.createElement('div',{className:'form-group'},
+        React.createElement('label',null,'メモ（任意）'),
+        React.createElement('textarea',{placeholder:'場所・用途など',value:note,onChange:e=>setNote(e.target.value)})),
+      React.createElement('div',{className:'form-group'},
+        React.createElement('label',null,'カラー'),
+        React.createElement('div',{className:'color-row'},
+          COLORS.map((c,i)=>React.createElement('div',{key:c,className:'cswatch'+(color===c?' on':''),style:{background:c},title:CNAMES[i],onClick:()=>setColor(c)})))),
+      previewUrl&&React.createElement('div',{style:{display:'flex',justifyContent:'center',margin:'1rem 0'}},
+        React.createElement(QRCanvas,{text:previewUrl,color,size:130})),
+      React.createElement('div',{style:{display:'flex',gap:8,marginTop:'0.5rem'}},
+        React.createElement('button',{className:'btn',style:{flex:1},onClick:onClose},'キャンセル'),
+        React.createElement('button',{className:'btn btn-primary',style:{flex:2},onClick:submit,disabled:!url.trim()||saving},saving?'保存中...':'作成する'))));
+}
+
+function ScanModal({item,onClose,onSubmit}){
+  const[workerName,setWorkerName]=useState('');
+  const[comment,setComment]=useState('');
+  const[saving,setSaving]=useState(false);
+  const submit=async()=>{
+    setSaving(true);
+    await onSubmit(item.id,workerName.trim(),comment.trim());
+    setSaving(false);
+  };
+  return React.createElement('div',{className:'overlay',onClick:e=>e.target===e.currentTarget&&onClose()},
+    React.createElement('div',{className:'modal'},
+      React.createElement('div',{className:'modal-header'},
+        React.createElement('h2',null,'作業記録'),
+        React.createElement('button',{className:'close-btn',onClick:onClose},'×')),
+      React.createElement('div',{className:'scan-modal-qr'},'📍 '+item.title),
+      React.createElement('div',{className:'form-group'},
+        React.createElement('label',null,'作業者名 ＊'),
+        React.createElement('input',{type:'text',placeholder:'例：田中',value:workerName,onChange:e=>setWorkerName(e.target.value),autoFocus:true})),
+      React.createElement('div',{className:'form-group'},
+        React.createElement('label',null,'作業内容・コメント'),
+        React.createElement('textarea',{placeholder:'例：点検完了、異常なし',value:comment,onChange:e=>setComment(e.target.value)})),
+      React.createElement('div',{style:{display:'flex',gap:8,marginTop:'0.5rem'}},
+        React.createElement('button',{className:'btn',style:{flex:1},onClick:onClose},'キャンセル'),
+        React.createElement('button',{className:'btn btn-green',style:{flex:2},onClick:submit,disabled:!workerName.trim()||saving},saving?'記録中...':'記録する'))));
+}
+
+function DetailModal({item,logs,onClose,onDelete,onDownload,onScan}){
+  const[copied,setCopied]=useState(false);
+  const copyUrl=()=>{navigator.clipboard.writeText(item.url).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000)})};
+  return React.createElement('div',{className:'overlay',onClick:e=>e.target===e.currentTarget&&onClose()},
+    React.createElement('div',{className:'modal'},
+      React.createElement('div',{className:'modal-header'},
+        React.createElement('h2',null,item.title||'無題'),
+        React.createElement('button',{className:'close-btn',onClick:onClose},'×')),
+      React.createElement('div',{className:'detail-qr'},
+        React.createElement(QRCanvas,{text:item.url||' ',color:item.color,size:190,canvasId:'qr-detail-cv'})),
+      React.createElement('div',{className:'sep'}),
+      React.createElement('div',{className:'info-row'},React.createElement('span',{className:'lbl'},'URL'),React.createElement('span',{className:'val',style:{color:'#185FA5',fontSize:12}},item.url)),
+      item.note&&React.createElement('div',{className:'info-row'},React.createElement('span',{className:'lbl'},'メモ'),React.createElement('span',{className:'val'},item.note)),
+      React.createElement('div',{className:'info-row'},React.createElement('span',{className:'lbl'},'スキャン数'),React.createElement('span',{style:{fontWeight:700,fontSize:20}},item.scans||0)),
+      React.createElement('div',{className:'info-row'},React.createElement('span',{className:'lbl'},'作成日'),React.createElement('span',{className:'val'},fmtDate(item.created_at))),
+      React.createElement('div',{className:'sep'}),
+      React.createElement('div',{style:{display:'flex',gap:8,marginBottom:8}},
+        React.createElement('button',{className:'btn',style:{flex:1},onClick:copyUrl},copied?'✓ コピー':'URLコピー'),
+        React.createElement('button',{className:'btn',style:{flex:1},onClick:()=>onDownload(item)},'PNG保存'),
+        React.createElement('button',{className:'btn btn-green',style:{flex:1},onClick:onScan},'作業記録')),
+      logs.length>0&&React.createElement('div',null,
+        React.createElement('div',{style:{fontSize:12,fontWeight:600,color:'#666',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:8}},'このQRの作業履歴'),
+        logs.slice(0,5).map(log=>React.createElement('div',{key:log.id,className:'log-item'},
+          React.createElement('div',{className:'log-header'},
+            React.createElement('span',{className:'log-worker'},'👤 '+(log.worker_name||'名前なし')),
+            React.createElement('span',{className:'log-time'},fmtDT(log.scanned_at))),
+          log.comment&&React.createElement('div',{className:'log-comment'},log.comment)))),
+      React.createElement('div',{style:{marginTop:8}},
+        React.createElement('button',{className:'btn btn-danger',style:{width:'100%',justifyContent:'center'},
+          onClick:()=>{if(confirm('このQRコードと作業履歴をすべて削除しますか？'))onDelete(item.id)}},'削除する'))));
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
