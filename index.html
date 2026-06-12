@@ -120,6 +120,37 @@ tr:hover td{background:#fafbfc}
 .swap-step-key{font-weight:700;color:#1a202c}
 .swap-bat-link{display:inline-block;margin-top:8px;padding:5px 12px;background:#131921;color:#fff;border-radius:6px;font-size:10px;font-weight:700;text-decoration:none;letter-spacing:.02em}
 .swap-bat-link:hover{background:#232f3e}
+.help-wrap{padding:.25rem 0}
+.help-section{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1rem}
+.help-h2{font-size:13px;font-weight:700;color:#1a202c;margin-bottom:1rem;display:flex;align-items:center;gap:6px}
+.help-steps{display:flex;flex-direction:column;gap:.75rem}
+.help-step{display:flex;align-items:flex-start;gap:12px}
+.help-step-num{background:#0F6E56;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px}
+.help-step-body{flex:1}
+.help-step-title{font-size:13px;font-weight:700;color:#1a202c;margin-bottom:2px}
+.help-step-desc{font-size:12px;color:#4a5568;line-height:1.6}
+.help-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:.5rem}
+.help-action{border-radius:8px;padding:12px 10px;text-align:center}
+.help-action-r{background:#f0fdf4;border:1.5px solid #bbf7d0}
+.help-action-d{background:#fef2f2;border:1.5px solid #fecaca}
+.help-action-s{background:#f5f3ff;border:1.5px solid #ddd6fe}
+.help-action-icon{font-size:20px;margin-bottom:4px}
+.help-action-name{font-size:12px;font-weight:700;margin-bottom:4px}
+.help-action-r .help-action-name{color:#0F6E56}
+.help-action-d .help-action-name{color:#dc2626}
+.help-action-s .help-action-name{color:#7c3aed}
+.help-action-list{font-size:10px;color:#4a5568;text-align:left;line-height:1.7;padding-left:0;list-style:none}
+.help-action-list li::before{content:"• ";color:#a0aec0}
+.help-bat-steps{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+.help-bat-step{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#4a5568;line-height:1.5}
+.help-bat-num{background:#131921;color:#fff;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.help-tip{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;margin-top:.75rem;line-height:1.6}
+.help-tip-title{font-weight:700;margin-bottom:2px}
+.help-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:.5rem}
+.help-table th{background:#f7fafc;padding:7px 12px;text-align:left;font-size:11px;font-weight:700;color:#718096;border-bottom:1px solid #e2e8f0}
+.help-table td{padding:8px 12px;border-bottom:1px solid #f0f4f8;vertical-align:top;color:#4a5568;line-height:1.5}
+.help-table tr:last-child td{border-bottom:none}
+@media(max-width:600px){.help-actions{grid-template-columns:1fr}}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:9999;pointer-events:none;animation:fadeup .2s}
 @keyframes fadeup{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media(max-width:600px){.stats{grid-template-columns:1fr 1fr}.hide-sp{display:none}.chart-label{width:130px}.qr-grid{grid-template-columns:repeat(2,1fr)}}
@@ -303,6 +334,153 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
   );
 }
 
+function HelpTab(){
+  const h=(t,p,...c)=>React.createElement(t,p,...c);
+  const li=text=>h('li',null,text);
+  return h('div',{className:'help-wrap'},
+
+    /* ── このアプリでできること ── */
+    h('div',{className:'help-section'},
+      h('div',{className:'help-h2'},'📋 このアプリでできること'),
+      h('p',{style:{fontSize:12,color:'#4a5568',lineHeight:1.7}},
+        'バッグ修理作業の記録をリアルタイムで管理するアプリです。',h('br'),
+        '修理・廃棄・QR貼り換えの3種類の作業を記録し、統計を確認できます。',h('br'),
+        'QR一覧のQRコードをスキャンすると、すぐに登録画面が開きます。'
+      )
+    ),
+
+    /* ── 基本の使い方 ── */
+    h('div',{className:'help-section'},
+      h('div',{className:'help-h2'},'🚀 基本の使い方'),
+      h('div',{className:'help-steps'},
+        h('div',{className:'help-step'},
+          h('div',{className:'help-step-num'},'1'),
+          h('div',{className:'help-step-body'},
+            h('div',{className:'help-step-title'},'QRコードをスキャン（または「＋ 記録追加」をタップ）'),
+            h('div',{className:'help-step-desc'},'QR一覧に印刷されたQRコードをスキャンすると、該当する作業の登録画面が自動で開きます。')
+          )
+        ),
+        h('div',{className:'help-step'},
+          h('div',{className:'help-step-num'},'2'),
+          h('div',{className:'help-step-body'},
+            h('div',{className:'help-step-title'},'作業者名・バッグIDを入力して「記録する」'),
+            h('div',{className:'help-step-desc'},'バッグIDはスキャナーで読み取るか手入力します。作業者名は必須です。')
+          )
+        ),
+        h('div',{className:'help-step'},
+          h('div',{className:'help-step-num'},'3'),
+          h('div',{className:'help-step-body'},
+            h('div',{className:'help-step-title'},'BAT Scan Toolでも登録する（廃棄・修理・QR貼り換え）'),
+            h('div',{className:'help-step-desc'},'このアプリへの記録とあわせて、BAT Scan Toolへの登録も必ず行ってください。')
+          )
+        )
+      )
+    ),
+
+    /* ── アクションの種類 ── */
+    h('div',{className:'help-section'},
+      h('div',{className:'help-h2'},'🗂 アクションの種類'),
+      h('div',{className:'help-actions'},
+        h('div',{className:'help-action help-action-r'},
+          h('div',{className:'help-action-icon'},'🔧'),
+          h('div',{className:'help-action-name'},'修理'),
+          h('ul',{className:'help-action-list'},
+            li('ジッパー修理：ランナー脱落'),
+            li('ジッパー修理：引き手脱落'),
+            li('QRコード修理（2枚以上破損）')
+          )
+        ),
+        h('div',{className:'help-action help-action-d'},
+          h('div',{className:'help-action-icon'},'🗑'),
+          h('div',{className:'help-action-name'},'廃棄'),
+          h('ul',{className:'help-action-list'},
+            li('底面・底板損傷'),
+            li('ジッパー修理不可'),
+            li('底面以外の損傷（穴等）'),
+            li('液漏れ汚損'),
+            li('ストラップ・ベルクロ損傷'),
+            li('修理済みバッグ（再修理不可）'),
+            li('QRコード全損（3枚全て）')
+          )
+        ),
+        h('div',{className:'help-action help-action-s'},
+          h('div',{className:'help-action-icon'},'↔'),
+          h('div',{className:'help-action-name'},'QR貼り換え'),
+          h('ul',{className:'help-action-list'},
+            li('旧QRと新QRの両方を登録'),
+            li('BAT: Barcode Mappingで登録'),
+            li('3枚全て貼り替えること')
+          )
+        )
+      )
+    ),
+
+    /* ── BAT Scan Toolへの登録方法 ── */
+    h('div',{className:'help-section'},
+      h('div',{className:'help-h2'},'🖥 BAT Scan Tool への登録方法'),
+      h('table',{className:'help-table'},
+        h('thead',null,h('tr',null,
+          h('th',null,'アクション'),h('th',null,'Scenario'),h('th',null,'Issue/手順')
+        )),
+        h('tbody',null,
+          h('tr',null,h('td',null,'🔧 修理（ランナー脱落）'),h('td',null,'Repair'),h('td',null,'Detached Zip')),
+          h('tr',null,h('td',null,'🔧 修理（引き手脱落）'),h('td',null,'Repair'),h('td',null,'Missing Zip Handle')),
+          h('tr',null,h('td',null,'🔧 QRコード修理'),h('td',null,'Repair'),h('td',null,'QR Code Label')),
+          h('tr',null,h('td',null,'🗑 廃棄（底面損傷）'),h('td',null,'Damaged'),h('td',null,'Damage Bottom Wear')),
+          h('tr',null,h('td',null,'🗑 廃棄（ジッパー不可）'),h('td',null,'Damaged'),h('td',null,'Unrepairable Zip')),
+          h('tr',null,h('td',null,'🗑 廃棄（穴・損傷）'),h('td',null,'Damaged'),h('td',null,'Damage Major Tear')),
+          h('tr',null,h('td',null,'🗑 廃棄（液漏れ）'),h('td',null,'Damaged'),h('td',null,'Contamination')),
+          h('tr',null,h('td',null,'🗑 廃棄（ストラップ）'),h('td',null,'Damaged'),h('td',null,'Detached Strap')),
+          h('tr',null,h('td',null,'↔ QR貼り換え'),h('td',null,'Barcode Mapping'),h('td',null,'①旧QRスキャン → ②QR交換 → ③新QRスキャン → Upload'))
+        )
+      ),
+      h('div',{className:'help-bat-steps'},
+        h('div',{style:{fontSize:11,fontWeight:700,color:'#718096',textTransform:'uppercase',letterSpacing:'.04em',marginTop:'.75rem',marginBottom:4}},'QR貼り換えの詳細手順'),
+        h('div',{className:'help-bat-step'},
+          h('div',{className:'help-bat-num'},'1'),
+          h('span',null,'BAT Scan Tool で「Barcode Mapping」を選択 → [Old barcode] に旧QRをスキャン（まだ剥がさない）')
+        ),
+        h('div',{className:'help-bat-step'},
+          h('div',{className:'help-bat-num'},'2'),
+          h('span',null,'旧QR（3枚全て）を剥がし → 新QRを貼付 → ローラーで押さえる')
+        ),
+        h('div',{className:'help-bat-step'},
+          h('div',{className:'help-bat-num'},'3'),
+          h('span',null,'[Old barcode] に新QRをスキャン → [Add to table below] → [Upload to database]')
+        )
+      )
+    ),
+
+    /* ── ヒント ── */
+    h('div',{className:'help-section'},
+      h('div',{className:'help-h2'},'💡 ヒント'),
+      h('div',{className:'help-steps'},
+        h('div',{className:'help-step'},
+          h('div',{className:'help-step-num',style:{background:'#718096'}},'Q'),
+          h('div',{className:'help-step-body'},
+            h('div',{className:'help-step-title'},'QR一覧タブでQRコードを印刷するには？'),
+            h('div',{className:'help-step-desc'},'「QR一覧」タブを開き、右上の「🖨 印刷」ボタンを押してください。現場に貼ることで、スキャンするだけで登録画面が開くようになります。')
+          )
+        ),
+        h('div',{className:'help-step'},
+          h('div',{className:'help-step-num',style:{background:'#718096'}},'Q'),
+          h('div',{className:'help-step-body'},
+            h('div',{className:'help-step-title'},'記録後に「Upload to database」を押し忘れたら？'),
+            h('div',{className:'help-step-desc'},'このアプリの記録はリアルタイムで保存されますが、BAT Scan Tool側の「Upload to database」は別途必ず実行してください。')
+          )
+        ),
+        h('div',{className:'help-step'},
+          h('div',{className:'help-step-num',style:{background:'#718096'}},'Q'),
+          h('div',{className:'help-step-body'},
+            h('div',{className:'help-step-title'},'QRコードが1枚だけ破損した場合は？'),
+            h('div',{className:'help-step-desc'},'残り2枚で運用可能なため、修理不要です。2枚以上破損した場合のみQRコード修理（Repair）を行います。3枚全損の場合は廃棄です。')
+          )
+        )
+      )
+    )
+  );
+}
+
 /* QR一覧タブ */
 function QRListTab(){
   const h=(t,p,...c)=>React.createElement(t,p,...c);
@@ -422,7 +600,8 @@ function App(){
       h('div',{className:'tabs'},
         h('button',{className:'tab'+(tab==='list'?' on':''),onClick:()=>setTab('list')},'記録一覧'),
         h('button',{className:'tab'+(tab==='stats'?' on':''),onClick:()=>setTab('stats')},'統計'),
-        h('button',{className:'tab'+(tab==='qr'?' on':''),onClick:()=>setTab('qr')},'QR一覧')
+        h('button',{className:'tab'+(tab==='qr'?' on':''),onClick:()=>setTab('qr')},'QR一覧'),
+        h('button',{className:'tab'+(tab==='help'?' on':''),onClick:()=>setTab('help')},'使い方')
       ),
       tab==='list'&&h('div',null,
         h('div',{className:'filter-bar'},
@@ -486,7 +665,8 @@ function App(){
             )
           )
       ),
-      tab==='qr'&&React.createElement(QRListTab)
+      tab==='qr'&&React.createElement(QRListTab),
+      tab==='help'&&React.createElement(HelpTab)
     ),
     showAdd&&h(AddModal,{onClose:()=>{setShowAdd(false);window.history.replaceState({},'',APP_URL);},onAdd:handleAdd,initAction:initParams.action,initIssue:initParams.issue}),
     toast&&h(Toast,{key:toast+Date.now(),msg:toast,onDone:()=>setToast(null)})
