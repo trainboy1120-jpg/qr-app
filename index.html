@@ -269,8 +269,8 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
   },[action]);
 
   const canSubmit=isSwap
-    ?(oldBarcode.trim()&&newBarcode.trim()&&worker.trim())
-    :(bagId.trim()&&worker.trim());
+    ?(oldBarcode.trim()&&newBarcode.trim())
+    :(bagId.trim());
 
   const submit=async()=>{
     if(!canSubmit)return;
@@ -324,7 +324,7 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
           )
         : h('div',{className:'fg'},h('label',null,'問題種別'),h('select',{value:issue,onChange:e=>setIssue(e.target.value)},issues.map(i=>h('option',{key:i,value:i},i)))),
       !isSwap&&h('div',{className:'fg'},h('label',null,'バッグID＊'),h('input',{type:'text',placeholder:'スキャンまたは入力',value:bagId,onChange:e=>setBagId(e.target.value),autoFocus:!isSwap})),
-      h('div',{className:'fg'},h('label',null,'作業者名＊'),h('input',{type:'text',placeholder:'例：田中',value:worker,onChange:e=>setWorker(e.target.value)})),
+      h('div',{className:'fg'},h('label',null,'作業者名（任意）'),h('input',{type:'text',placeholder:'例：田中',value:worker,onChange:e=>setWorker(e.target.value)})),
       h('div',{className:'fg'},h('label',null,'メモ（任意）'),h('textarea',{placeholder:'特記事項など',value:memo,onChange:e=>setMemo(e.target.value)})),
       h('div',{style:{display:'flex',gap:8,marginTop:4}},
         h('button',{className:'btn',style:{flex:1},onClick:onClose},'キャンセル'),
