@@ -63,12 +63,22 @@ tr:hover td{background:#fafbfc}
 .bar-d{background:#dc2626}
 .chart-n{font-size:12px;font-weight:600;color:#4a5568;width:28px;text-align:right}
 .chart-sep{height:1px;background:#f0f4f8;margin:1rem 0}
+/* QR一覧 */
 .qr-section-title{font-size:11px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.05em;margin:1.25rem 0 .75rem;padding-left:2px}
-.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:1.5rem}
-.qr-item{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:8px}
+.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:1.5rem}
+.qr-item{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:7px}
 .qr-item img{border-radius:6px;display:block}
-.qr-item-label{font-size:11px;font-weight:600;text-align:center;color:#1a202c;line-height:1.4}
+.qr-item-label{font-size:11px;font-weight:600;text-align:center;color:#1a202c;line-height:1.4;width:100%}
 .qr-item-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+/* BATマッピング */
+.bat-info{width:100%;border-top:1px solid #f0f4f8;padding-top:7px;margin-top:2px}
+.bat-row{display:flex;align-items:baseline;gap:4px;margin-bottom:3px}
+.bat-key{font-size:9px;font-weight:700;color:#a0aec0;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.bat-val{font-size:10px;color:#4a5568;font-weight:600}
+.bat-issue{font-size:10px;color:#718096}
+.bat-btn{display:block;width:100%;margin-top:6px;padding:5px 0;background:#131921;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;text-decoration:none;letter-spacing:.02em;transition:background .12s}
+.bat-btn:hover{background:#232f3e}
+.bat-pending{font-size:10px;color:#a0aec0;text-align:center;margin-top:4px;font-style:italic}
 .print-bar{display:flex;justify-content:flex-end;margin-bottom:1rem}
 @media print{
   .header,.tabs,.print-bar,.stats{display:none!important}
@@ -76,7 +86,9 @@ tr:hover td{background:#fafbfc}
   body{background:#fff}
   .qr-grid{grid-template-columns:repeat(4,1fr);gap:8px}
   .qr-item{border:1px solid #ccc;break-inside:avoid}
+  .bat-btn{display:none}
 }
+/* modal */
 .overlay{position:fixed;inset:0;background:rgba(15,25,40,.45);display:flex;align-items:center;justify-content:center;z-index:999;padding:1rem}
 .modal{background:#fff;border-radius:12px;padding:1.5rem;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.18)}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
@@ -107,6 +119,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const { useState, useEffect, useCallback } = React;
 const APP_URL = 'https://trainboy1120-jpg.github.io/qr-app/';
+const BAT_URL = 'https://console.harmony.a2z.com/amzl-bat-tools/';
 
 const REPAIR_ISSUES = [
   'ジッパー修理：ランナー脱落',
@@ -122,6 +135,21 @@ const DISPOSAL_ISSUES = [
   '廃棄：液漏れ汚損',
   '廃棄：ストラップ・ベルクロ損傷',
 ];
+
+/* BAT Scan Tool へのマッピング（未確定の2件は null） */
+const BAT_MAP = {
+  'ジッパー修理：ランナー脱落':        { scenario: 'Repair',  issue: 'Detached Zip' },
+  'ジッパー修理：引き手脱落':          { scenario: 'Repair',  issue: 'Missing Zip Handle' },
+  'QRコード修理（2枚以上破損）':       { scenario: 'Repair',  issue: 'QR Code Label' },
+  '廃棄：底面・底板損傷':              { scenario: 'Damaged', issue: 'Damage Bottom Wear' },
+  '廃棄：ジッパー修理不可':            { scenario: 'Damaged', issue: 'Unrepairable Zip' },
+  '廃棄：底面以外の損傷（穴あき等）':  { scenario: 'Damaged', issue: 'Damage Major Tear' },
+  '廃棄：液漏れ汚損':                  { scenario: 'Damaged', issue: 'Contamination' },
+  '廃棄：ストラップ・ベルクロ損傷':    { scenario: 'Damaged', issue: 'Detached Strap' },
+  /* 以下は未確定 → null で登録保留 */
+  '廃棄：修理済みバッグ（再修理不可）': null,
+  '廃棄：QRコード全損（3枚全て）':     null,
+};
 
 const fmtToday=()=>new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
 const fmtDT=iso=>iso?new Date(iso).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
@@ -141,9 +169,34 @@ async function getSysId(){
   sysId=ins?.id;return sysId;
 }
 
+/* QRコード画像（外部API） */
 function QRImg({text,size=130}){
   const src='https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+encodeURIComponent(text)+'&ecc=M';
   return React.createElement('img',{src,width:size,height:size,alt:'QR',loading:'lazy',style:{borderRadius:6,display:'block'}});
+}
+
+/* BATマッピング情報 + 登録ボタン */
+function BatInfo({issue}){
+  const bat = BAT_MAP[issue];
+  const h=(t,p,...c)=>React.createElement(t,p,...c);
+  if(bat===undefined) return null; // マッピング定義なし
+  if(bat===null){
+    /* 未確定 */
+    return h('div',{className:'bat-info'},
+      h('div',{className:'bat-pending'},'BAT登録先 確認中')
+    );
+  }
+  return h('div',{className:'bat-info'},
+    h('div',{className:'bat-row'},
+      h('span',{className:'bat-key'},'Scenario'),
+      h('span',{className:'bat-val'},bat.scenario)
+    ),
+    h('div',{className:'bat-row'},
+      h('span',{className:'bat-key'},'Issue'),
+      h('span',{className:'bat-issue'},bat.issue)
+    ),
+    h('a',{className:'bat-btn',href:BAT_URL,target:'_blank',rel:'noopener'},'BAT Toolsで登録 →')
+  );
 }
 
 function Toast({msg,onDone}){
@@ -191,26 +244,25 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
   );
 }
 
+/* QR一覧タブ — BAT Scan Tool マッピング付き */
 function QRListTab(){
   const h=(t,p,...c)=>React.createElement(t,p,...c);
+  const card=(issue,actionType)=>{
+    const url=APP_URL+'?a='+encodeURIComponent(actionType)+'&i='+encodeURIComponent(issue);
+    const badgeCls='qr-item-badge badge '+(actionType==='修理'?'badge-r':'badge-d');
+    return h('div',{key:issue,className:'qr-item'},
+      h(QRImg,{text:url,size:130}),
+      h('span',{className:badgeCls},actionType),
+      h('div',{className:'qr-item-label'},issue),
+      h(BatInfo,{issue})
+    );
+  };
   return h('div',null,
     h('div',{className:'print-bar'},h('button',{className:'btn',onClick:()=>window.print()},'🖨 印刷')),
     h('div',{className:'qr-section-title'},'🔧 修理'),
-    h('div',{className:'qr-grid'},REPAIR_ISSUES.map(issue=>{
-      const url=APP_URL+'?a=修理&i='+encodeURIComponent(issue);
-      return h('div',{key:issue,className:'qr-item'},
-        h(QRImg,{text:url,size:130}),
-        h('span',{className:'qr-item-badge badge badge-r'},'修理'),
-        h('div',{className:'qr-item-label'},issue));
-    })),
+    h('div',{className:'qr-grid'},REPAIR_ISSUES.map(i=>card(i,'修理'))),
     h('div',{className:'qr-section-title'},'🗑 廃棄'),
-    h('div',{className:'qr-grid'},DISPOSAL_ISSUES.map(issue=>{
-      const url=APP_URL+'?a=廃棄&i='+encodeURIComponent(issue);
-      return h('div',{key:issue,className:'qr-item'},
-        h(QRImg,{text:url,size:130}),
-        h('span',{className:'qr-item-badge badge badge-d'},'廃棄'),
-        h('div',{className:'qr-item-label'},issue));
-    }))
+    h('div',{className:'qr-grid'},DISPOSAL_ISSUES.map(i=>card(i,'廃棄')))
   );
 }
 
@@ -306,7 +358,8 @@ function App(){
                   h('td',{className:'hide-sp'},h('span',{className:'td-bag'},d.bag_id||'—')),
                   h('td',{className:'hide-sp'},h('span',{className:'td-worker'},log.worker_name||'—')),
                   h('td',{className:'hide-sp'},h('span',{className:'td-memo',title:d.memo},d.memo||'')));
-              }))))
+              })))
+        )
       ),
       tab==='stats'&&h('div',{className:'card'},
         Object.keys(issueStats).length===0
