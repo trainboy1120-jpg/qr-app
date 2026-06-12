@@ -111,6 +111,15 @@ tr:hover td{background:#fafbfc}
 .act-btn.d.on{border-color:#dc2626;background:#fef2f2;color:#dc2626}
 .act-btn.s.on{border-color:#7c3aed;background:#f5f3ff;color:#7c3aed}
 .swap-note{font-size:11px;color:#7c3aed;background:#f5f3ff;border-radius:6px;padding:6px 10px;margin-bottom:.9rem;line-height:1.5}
+.swap-steps{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px;margin-bottom:.9rem}
+.swap-steps-title{font-size:10px;font-weight:700;color:#5b21b6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.swap-step{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:11px;color:#4a5568;line-height:1.5}
+.swap-step:last-child{margin-bottom:0}
+.swap-step-num{background:#7c3aed;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.swap-step-body{flex:1}
+.swap-step-key{font-weight:700;color:#1a202c}
+.swap-bat-link{display:inline-block;margin-top:8px;padding:5px 12px;background:#131921;color:#fff;border-radius:6px;font-size:10px;font-weight:700;text-decoration:none;letter-spacing:.02em}
+.swap-bat-link:hover{background:#232f3e}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:9999;pointer-events:none;animation:fadeup .2s}
 @keyframes fadeup{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media(max-width:600px){.stats{grid-template-columns:1fr 1fr}.hide-sp{display:none}.chart-label{width:130px}.qr-grid{grid-template-columns:repeat(2,1fr)}}
@@ -266,9 +275,21 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
       ),
       isSwap
         ? h('div',null,
-            h('div',{className:'swap-note'},'BAT Scan Tool: Barcode Mapping で古い・新しいQRを登録してください'),
-            h('div',{className:'fg'},h('label',null,'古いバーコード＊'),h('input',{type:'text',placeholder:'旧QRをスキャン',value:oldBarcode,onChange:e=>setOldBarcode(e.target.value),autoFocus:true})),
-            h('div',{className:'fg'},h('label',null,'新しいバーコード＊'),h('input',{type:'text',placeholder:'新QRをスキャン',value:newBarcode,onChange:e=>setNewBarcode(e.target.value)}))
+            h('div',{className:'swap-steps'},
+              h('div',{className:'swap-steps-title'},'BAT Scan Tool 手順（Barcode Mapping）'),
+              h('div',{className:'swap-step'},
+                h('div',{className:'swap-step-num'},'1'),
+                h('div',{className:'swap-step-body'},h('span',{className:'swap-step-key'},'BAT: Barcode Mapping 選択'),　' → [Old barcode] に旧QRをスキャン（まだ剥がさない）')),
+              h('div',{className:'swap-step'},
+                h('div',{className:'swap-step-num'},'2'),
+                h('div',{className:'swap-step-body'},'旧QR（3枚全て）を剥がし → 新QRを貼付 → ローラーで押さえる')),
+              h('div',{className:'swap-step'},
+                h('div',{className:'swap-step-num'},'3'),
+                h('div',{className:'swap-step-body'},h('span',{className:'swap-step-key'},'BAT: [Old barcode] に新QRをスキャン'),' → [Add to table below] → [Upload to database]')),
+              h('a',{className:'swap-bat-link',href:BAT_URL,target:'_blank',rel:'noopener'},'BAT Toolsを開く →')
+            ),
+            h('div',{className:'fg'},h('label',null,'古いバーコード（旧QR）＊'),h('input',{type:'text',placeholder:'旧QRをスキャン',value:oldBarcode,onChange:e=>setOldBarcode(e.target.value),autoFocus:true})),
+            h('div',{className:'fg'},h('label',null,'新しいバーコード（新QR）＊'),h('input',{type:'text',placeholder:'新QRをスキャン',value:newBarcode,onChange:e=>setNewBarcode(e.target.value)}))
           )
         : h('div',{className:'fg'},h('label',null,'問題種別'),h('select',{value:issue,onChange:e=>setIssue(e.target.value)},issues.map(i=>h('option',{key:i,value:i},i)))),
       !isSwap&&h('div',{className:'fg'},h('label',null,'バッグID＊'),h('input',{type:'text',placeholder:'スキャンまたは入力',value:bagId,onChange:e=>setBagId(e.target.value),autoFocus:!isSwap})),
