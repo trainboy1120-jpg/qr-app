@@ -258,6 +258,8 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
   const[newBarcode,setNewBarcode]=useState('');
   const[worker,setWorker]=useState('');
   const[memo,setMemo]=useState('');
+  const nowLocal=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
+  const[scannedAt,setScannedAt]=useState(nowLocal());
   const[saving,setSaving]=useState(false);
 
   const isSwap=action==='QR貼り換え';
@@ -282,7 +284,8 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
       old_barcode: isSwap?oldBarcode.trim():null,
       new_barcode: isSwap?newBarcode.trim():null,
       worker:worker.trim(),
-      memo:memo.trim()
+      memo:memo.trim(),
+      scanned_at: scannedAt? new Date(scannedAt).toISOString() : new Date().toISOString()
     });
     setSaving(false);
   };
@@ -325,6 +328,7 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
         : h('div',{className:'fg'},h('label',null,'問題種別'),h('select',{value:issue,onChange:e=>setIssue(e.target.value)},issues.map(i=>h('option',{key:i,value:i},i)))),
       !isSwap&&h('div',{className:'fg'},h('label',null,'バッグID＊'),h('input',{type:'text',placeholder:'スキャンまたは入力',value:bagId,onChange:e=>setBagId(e.target.value),autoFocus:!isSwap})),
       h('div',{className:'fg'},h('label',null,'作業者名（任意）'),h('input',{type:'text',placeholder:'例：田中',value:worker,onChange:e=>setWorker(e.target.value)})),
+      h('div',{className:'fg'},h('label',null,'作業日時'),h('input',{type:'datetime-local',value:scannedAt,onChange:e=>setScannedAt(e.target.value)})),
       h('div',{className:'fg'},h('label',null,'メモ（任意）'),h('textarea',{placeholder:'特記事項など',value:memo,onChange:e=>setMemo(e.target.value)})),
       h('div',{style:{display:'flex',gap:8,marginTop:4}},
         h('button',{className:'btn',style:{flex:1},onClick:onClose},'キャンセル'),
@@ -537,14 +541,16 @@ function App(){
     return()=>supabase.removeChannel(ch);
   },[fetchLogs]);
 
-  const handleAdd=async({action,issue,bag_id,old_barcode,new_barcode,worker,memo})=>{
+  const handleAdd=async({action,issue,bag_id,old_barcode,new_barcode,worker,memo,scanned_at})=>{
     const id=await getSysId();
     const comment=JSON.stringify(
       action==='QR貼り換え'
         ?{action,issue,old_barcode,new_barcode,memo}
         :{action,issue,bag_id,memo}
     );
-    const{error}=await supabase.from('scan_logs').insert({qr_code_id:id,worker_name:worker,comment});
+    const row={qr_code_id:id,worker_name:worker,comment};
+    if(scanned_at)row.scanned_at=scanned_at;
+    const{error}=await supabase.from('scan_logs').insert(row);
     if(error){notify('エラー: '+error.message);return;}
     setShowAdd(false);
     window.history.replaceState({},'',APP_URL);
