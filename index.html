@@ -151,6 +151,23 @@ tr:hover td{background:#fafbfc}
 .help-table td{padding:8px 12px;border-bottom:1px solid #f0f4f8;vertical-align:top;color:#4a5568;line-height:1.5}
 .help-table tr:last-child td{border-bottom:none}
 @media(max-width:600px){.help-actions{grid-template-columns:1fr}}
+.bat-reg-bar{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
+.bat-reg-bar input[type=date]{padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-family:inherit;color:#1a202c}
+.bat-reg-note{font-size:11px;color:#718096;background:#f7fafc;border-radius:6px;padding:8px 12px;margin-bottom:1rem;line-height:1.6}
+.bat-reg-group{background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:1rem;overflow:hidden}
+.bat-reg-group-head{padding:10px 16px;font-size:12px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.bat-reg-head-repair{background:#0F6E56}
+.bat-reg-head-damaged{background:#dc2626}
+.bat-reg-head-swap{background:#7c3aed}
+.bat-reg-head-pending{background:#a0aec0}
+.bat-reg-issue{padding:10px 16px;border-bottom:1px solid #f0f4f8}
+.bat-reg-issue:last-child{border-bottom:none}
+.bat-reg-issue-title{font-size:12px;font-weight:700;color:#1a202c;margin-bottom:4px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.bat-reg-issue-en{font-size:11px;color:#718096;font-weight:600;white-space:nowrap}
+.bat-reg-bags{font-size:11px;color:#4a5568;line-height:1.8;word-break:break-all}
+.bat-reg-count{background:rgba(255,255,255,.25);padding:1px 9px;border-radius:10px;font-size:11px}
+.bat-reg-empty{text-align:center;padding:3rem 1rem;color:#a0aec0;font-size:13px}
+.bat-reg-total{font-size:12px;color:#718096;font-weight:600}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:9999;pointer-events:none;animation:fadeup .2s}
 @keyframes fadeup{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media(max-width:600px){.stats{grid-template-columns:1fr 1fr}.hide-sp{display:none}.chart-label{width:130px}.qr-grid{grid-template-columns:repeat(2,1fr)}}
@@ -517,6 +534,92 @@ function QRListTab(){
   );
 }
 
+/* BAT登録タブ — 当日分をScenario/Issue別に集計＋CSV出力 */
+function BatRegisterTab({logs}){
+  const h=(t,p,...c)=>React.createElement(t,p,...c);
+  const localDateStr=iso=>{const d=new Date(iso);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);};
+  const todayStr=localDateStr(new Date().toISOString());
+  const[date,setDate]=useState(todayStr);
+
+  const dayLogs=logs.filter(l=>localDateStr(l.scanned_at)===date);
+
+  const groups={Repair:{},Damaged:{}};
+  const swapList=[];
+  const pendingList=[];
+  dayLogs.forEach(l=>{
+    const d=parse(l);
+    if(d.action==='QR貼り換え'){swapList.push({old:d.old_barcode,nw:d.new_barcode});return;}
+    const bat=BAT_MAP[d.issue];
+    if(bat===null||bat===undefined){pendingList.push({issue:d.issue,bag:d.bag_id});return;}
+    const sc=bat.scenario,is=bat.issue;
+    if(!groups[sc])groups[sc]={};
+    if(!groups[sc][is])groups[sc][is]=[];
+    groups[sc][is].push(d.bag_id);
+  });
+
+  const exportCSV=()=>{
+    const rows=[['日時','アクション','問題種別','Scenario','Issue','バッグID','旧バーコード','新バーコード','作業者','メモ']];
+    dayLogs.forEach(l=>{
+      const d=parse(l);
+      const bat=BAT_MAP[d.issue]||{scenario:'',issue:''};
+      const isSwap=d.action==='QR貼り換え';
+      rows.push([
+        fmtDT(l.scanned_at),d.action||'',isSwap?'QR貼り換え':(d.issue||''),
+        isSwap?'Barcode Mapping':(bat.scenario||''),isSwap?'':(bat.issue||''),
+        d.bag_id||'',d.old_barcode||'',d.new_barcode||'',l.worker_name||'',(d.memo||'').replace(/[\r\n]+/g,' ')
+      ]);
+    });
+    const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='BAT登録_'+date+'.csv';a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const scLabel={Repair:'🔧 Repair（修理）',Damaged:'🗑 Damaged（廃棄）'};
+  const scCls={Repair:'bat-reg-head-repair',Damaged:'bat-reg-head-damaged'};
+  const renderGroup=sc=>{
+    const issues=groups[sc];const keys=Object.keys(issues);
+    if(keys.length===0)return null;
+    const total=keys.reduce((s,k)=>s+issues[k].length,0);
+    return h('div',{key:sc,className:'bat-reg-group'},
+      h('div',{className:'bat-reg-group-head '+scCls[sc]},h('span',null,scLabel[sc]),h('span',{className:'bat-reg-count'},total+'件')),
+      keys.map(is=>h('div',{key:is,className:'bat-reg-issue'},
+        h('div',{className:'bat-reg-issue-title'},h('span',null,issues[is].length+'件'),h('span',{className:'bat-reg-issue-en'},'BAT: '+sc+' / '+is)),
+        h('div',{className:'bat-reg-bags'},issues[is].map(b=>b||'(ID未入力)').join('、'))
+      ))
+    );
+  };
+
+  const totalAll=dayLogs.length;
+  return h('div',null,
+    h('div',{className:'bat-reg-bar'},
+      h('label',{style:{fontSize:12,fontWeight:600,color:'#718096'}},'対象日'),
+      h('input',{type:'date',value:date,onChange:e=>setDate(e.target.value)}),
+      h('span',{className:'bat-reg-total'},totalAll+'件'),
+      h('button',{className:'btn btn-primary',style:{marginLeft:'auto'},onClick:exportCSV,disabled:totalAll===0},'⬇ CSV出力')
+    ),
+    h('div',{className:'bat-reg-note'},'この一覧を見ながら BAT Tools へ手動で登録してください。Scenario / Issue はBATの選択項目に対応しています。'),
+    totalAll===0
+      ?h('div',{className:'card'},h('div',{className:'bat-reg-empty'},'この日の記録はありません'))
+      :h('div',null,
+        renderGroup('Repair'),
+        renderGroup('Damaged'),
+        swapList.length>0&&h('div',{className:'bat-reg-group'},
+          h('div',{className:'bat-reg-group-head bat-reg-head-swap'},h('span',null,'↔ Barcode Mapping（QR貼り換え）'),h('span',{className:'bat-reg-count'},swapList.length+'件')),
+          swapList.map((s,i)=>h('div',{key:i,className:'bat-reg-issue'},h('div',{className:'bat-reg-bags'},(s.old||'(旧)')+' → '+(s.nw||'(新)'))))
+        ),
+        pendingList.length>0&&h('div',{className:'bat-reg-group'},
+          h('div',{className:'bat-reg-group-head bat-reg-head-pending'},h('span',null,'⚠ BAT登録先 確認中'),h('span',{className:'bat-reg-count'},pendingList.length+'件')),
+          pendingList.map((p,i)=>h('div',{key:i,className:'bat-reg-issue'},
+            h('div',{className:'bat-reg-issue-title'},h('span',null,p.issue)),
+            h('div',{className:'bat-reg-bags'},p.bag||'(ID未入力)')
+          ))
+        )
+      )
+  );
+}
+
 function App(){
   const[logs,setLogs]=useState([]);
   const[tab,setTab]=useState('list');
@@ -607,6 +710,7 @@ function App(){
         h('button',{className:'tab'+(tab==='list'?' on':''),onClick:()=>setTab('list')},'記録一覧'),
         h('button',{className:'tab'+(tab==='stats'?' on':''),onClick:()=>setTab('stats')},'統計'),
         h('button',{className:'tab'+(tab==='qr'?' on':''),onClick:()=>setTab('qr')},'QR一覧'),
+        h('button',{className:'tab'+(tab==='bat'?' on':''),onClick:()=>setTab('bat')},'BAT登録'),
         h('button',{className:'tab'+(tab==='help'?' on':''),onClick:()=>setTab('help')},'使い方')
       ),
       tab==='list'&&h('div',null,
@@ -672,6 +776,7 @@ function App(){
           )
       ),
       tab==='qr'&&React.createElement(QRListTab),
+      tab==='bat'&&React.createElement(BatRegisterTab,{logs}),
       tab==='help'&&React.createElement(HelpTab)
     ),
     showAdd&&h(AddModal,{onClose:()=>{setShowAdd(false);window.history.replaceState({},'',APP_URL);},onAdd:handleAdd,initAction:initParams.action,initIssue:initParams.issue}),
