@@ -150,6 +150,12 @@ tr:hover td{background:#fafbfc}
 .help-table th{background:#f7fafc;padding:7px 12px;text-align:left;font-size:11px;font-weight:700;color:#718096;border-bottom:1px solid #e2e8f0}
 .help-table td{padding:8px 12px;border-bottom:1px solid #f0f4f8;vertical-align:top;color:#4a5568;line-height:1.5}
 .help-table tr:last-child td{border-bottom:none}
+.help-shots{display:flex;flex-direction:column;gap:1rem;margin-top:.75rem}
+.help-shot{border:1px solid #d4dce5;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(19,25,33,.06)}
+.help-shot-head{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#131921;color:#fff;font-size:12px;font-weight:700}
+.help-shot-no{background:#ff9900;color:#131921;border-radius:4px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;padding:0 4px;flex-shrink:0}
+.help-shot img{width:100%;display:block;background:#0a0e14}
+.help-shot-cap{padding:8px 12px;font-size:12px;color:#4a5568;background:#f7fafc;border-top:1px solid #e4eaf0;line-height:1.5}
 @media(max-width:600px){.help-actions{grid-template-columns:1fr}}
 .bat-reg-bar{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
 .bat-reg-bar input[type=date]{padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-family:inherit;color:#1a202c}
@@ -468,6 +474,40 @@ function HelpTab(){
         h('div',{className:'help-bat-step'},
           h('div',{className:'help-bat-num'},'3'),
           h('span',null,'[Old barcode] に新QRをスキャン → [Add to table below] → [Upload to database]')
+        )
+      )
+    ),
+
+    /* ── BAT登録画面の見方（実画面） ── */
+    h('div',{className:'help-section'},
+      h('div',{className:'help-h2'},'📸 BAT登録画面の見方（実際の画面）'),
+      h('p',{style:{fontSize:12,color:'#4a5568',lineHeight:1.7,marginBottom:'.5rem'}},
+        'BAT Tools の実際の登録画面です。初めて登録する人はこの順番どおりに進めてください。'),
+      h('div',{className:'help-shots'},
+        h('div',{className:'help-shot'},
+          h('div',{className:'help-shot-head'},h('span',{className:'help-shot-no'},'1'),'国とステーションを選ぶ'),
+          h('img',{src:'img/bat-1-station.png',alt:'国とステーション選択画面',loading:'lazy'}),
+          h('div',{className:'help-shot-cap'},'左上で「JP」「DEJ6」を選択した状態にします。')
+        ),
+        h('div',{className:'help-shot'},
+          h('div',{className:'help-shot-head'},h('span',{className:'help-shot-no'},'2'),'作業の種類（シナリオ）を選ぶ'),
+          h('img',{src:'img/bat-2-scenario.png',alt:'シナリオ選択画面',loading:'lazy'}),
+          h('div',{className:'help-shot-cap'},'ボックスをクリックすると4種類（Back at Station / Damaged / Repair / Barcode Mapping）が表示されます。')
+        ),
+        h('div',{className:'help-shot'},
+          h('div',{className:'help-shot-head'},h('span',{className:'help-shot-no'},'3'),'Damaged（廃棄）の Issue を選ぶ'),
+          h('img',{src:'img/bat-3-damaged.png',alt:'Damagedの理由選択画面',loading:'lazy'}),
+          h('div',{className:'help-shot-cap'},'Damaged を選ぶと廃棄の理由が7つ表示されます。上の対応表を見て選んでください。')
+        ),
+        h('div',{className:'help-shot'},
+          h('div',{className:'help-shot-head'},h('span',{className:'help-shot-no'},'4'),'Repair（修理）の Issue を選ぶ'),
+          h('img',{src:'img/bat-4-repair.png',alt:'Repairの種類選択画面',loading:'lazy'}),
+          h('div',{className:'help-shot-cap'},'Repair を選ぶと修理の種類が3つ表示されます（Detached Zip / Missing Zip Handle / QR Code Label）。')
+        ),
+        h('div',{className:'help-shot'},
+          h('div',{className:'help-shot-head'},h('span',{className:'help-shot-no'},'5'),'QR貼り換え（Barcode Mapping）'),
+          h('img',{src:'img/bat-5-mapping.png',alt:'Barcode Mapping画面',loading:'lazy'}),
+          h('div',{className:'help-shot-cap'},'Barcode Mapping を選ぶと Old barcode と New barcode の2欄が出ます。旧QRをスキャン→QRを交換→新QRをスキャンの順です。')
         )
       )
     ),
