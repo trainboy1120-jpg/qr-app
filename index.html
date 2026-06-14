@@ -509,6 +509,10 @@ function HelpTab(){
           h('img',{src:'img/bat-5-mapping.png',alt:'Barcode Mapping画面',loading:'lazy'}),
           h('div',{className:'help-shot-cap'},'Barcode Mapping を選ぶと Old barcode と New barcode の2欄が出ます。旧QRをスキャン→QRを交換→新QRをスキャンの順です。')
         )
+      ),
+      h('div',{className:'help-tip'},
+        h('div',{className:'help-tip-title'},'⚠ 入力したら必ず「Add to table below」を押す'),
+        '各項目（シナリオ・Issue・バッグスキャン）を入力したら、画面右下のオレンジ色「Add to table below」ボタンを押して一覧に追加します。これを押さないと登録されません。すべて追加し終えたら、最後に「Upload to database」で確定します。'
       )
     ),
 
