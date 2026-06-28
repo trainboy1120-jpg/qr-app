@@ -216,6 +216,13 @@ const DISPOSAL_ISSUES = [
   '廃棄：ストラップ・ベルクロ損傷',
 ];
 
+/* 全角→半角 正規化（スキャナ入力のIME全角化対策: 全角数字/英字/記号→半角, 各種ダッシュ→ハイフン） */
+const normalizeCode = s => (s||'')
+  .replace(/[\uFF01-\uFF5E]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+  .replace(/\u3000/g, ' ')
+  .replace(/[\u30FC\u2010-\u2015\u2212]/g, '-')
+  .trim();
+
 /* BAT Scan Tool マッピング */
 const BAT_MAP = {
   'ジッパー修理：チャック脱落':        { scenario: 'Repair',          issue: 'Detached Zip' },
@@ -313,9 +320,9 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
     await onAdd({
       action,
       issue: isSwap?'QR貼り換え':issue,
-      bag_id: isSwap?null:bagId.trim(),
-      old_barcode: isSwap?oldBarcode.trim():null,
-      new_barcode: isSwap?newBarcode.trim():null,
+      bag_id: isSwap?null:normalizeCode(bagId),
+      old_barcode: isSwap?normalizeCode(oldBarcode):null,
+      new_barcode: isSwap?normalizeCode(newBarcode):null,
       worker:worker.trim(),
       memo:memo.trim(),
       scanned_at: scannedAt? new Date(scannedAt).toISOString() : new Date().toISOString()
@@ -342,11 +349,11 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
       ),
       isSwap
         ? h('div',null,
-            h('div',{className:'fg'},h('label',null,'古いバーコード（旧QR）＊'),h('input',{type:'text',placeholder:'旧QRをスキャン',value:oldBarcode,onChange:e=>setOldBarcode(e.target.value),autoFocus:true})),
-            h('div',{className:'fg'},h('label',null,'新しいバーコード（新QR）＊'),h('input',{type:'text',placeholder:'新QRをスキャン',value:newBarcode,onChange:e=>setNewBarcode(e.target.value)}))
+            h('div',{className:'fg'},h('label',null,'古いバーコード（旧QR）＊'),h('input',{type:'text',placeholder:'旧QRをスキャン',value:oldBarcode,onChange:e=>setOldBarcode(normalizeCode(e.target.value)),autoFocus:true,autoComplete:'off'})),
+            h('div',{className:'fg'},h('label',null,'新しいバーコード（新QR）＊'),h('input',{type:'text',placeholder:'新QRをスキャン',value:newBarcode,onChange:e=>setNewBarcode(normalizeCode(e.target.value)),autoComplete:'off'}))
           )
         : h('div',{className:'fg'},h('label',null,'問題種別'),h('select',{value:issue,onChange:e=>setIssue(e.target.value)},issues.map(i=>h('option',{key:i,value:i},i)))),
-      !isSwap&&h('div',{className:'fg'},h('label',null,'バッグID＊'),h('input',{type:'text',placeholder:'スキャンまたは入力',value:bagId,onChange:e=>setBagId(e.target.value),autoFocus:!isSwap})),
+      !isSwap&&h('div',{className:'fg'},h('label',null,'バッグID＊'),h('input',{type:'text',placeholder:'スキャンまたは入力',value:bagId,onChange:e=>setBagId(normalizeCode(e.target.value)),autoFocus:!isSwap,autoComplete:'off'})),
       h('div',{className:'fg'},h('label',null,'作業者名（任意）'),h('input',{type:'text',placeholder:'例：田中',value:worker,onChange:e=>setWorker(e.target.value)})),
       h('div',{className:'fg'},h('label',null,'作業日時'),h('input',{type:'datetime-local',value:scannedAt,onChange:e=>setScannedAt(e.target.value)})),
       h('div',{className:'fg'},h('label',null,'メモ（任意）'),h('textarea',{placeholder:'特記事項など',value:memo,onChange:e=>setMemo(e.target.value)})),
