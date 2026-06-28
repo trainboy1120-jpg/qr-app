@@ -342,19 +342,6 @@ function AddModal({onClose,onAdd,initAction,initIssue}){
       ),
       isSwap
         ? h('div',null,
-            h('div',{className:'swap-steps'},
-              h('div',{className:'swap-steps-title'},'BAT Scan Tool 手順（Barcode Mapping）'),
-              h('div',{className:'swap-step'},
-                h('div',{className:'swap-step-num'},'1'),
-                h('div',{className:'swap-step-body'},h('span',{className:'swap-step-key'},'BAT: Barcode Mapping 選択'),　' → [Old barcode] に旧QRをスキャン（まだ剥がさない）')),
-              h('div',{className:'swap-step'},
-                h('div',{className:'swap-step-num'},'2'),
-                h('div',{className:'swap-step-body'},'旧QR（3枚全て）を剥がし → 新QRを貼付 → ローラーで押さえる')),
-              h('div',{className:'swap-step'},
-                h('div',{className:'swap-step-num'},'3'),
-                h('div',{className:'swap-step-body'},h('span',{className:'swap-step-key'},'BAT: [Old barcode] に新QRをスキャン'),' → [Add to table below] → [Upload to database]')),
-              h('a',{className:'swap-bat-link',href:BAT_URL,target:'_blank',rel:'noopener'},'BAT Toolsを開く →')
-            ),
             h('div',{className:'fg'},h('label',null,'古いバーコード（旧QR）＊'),h('input',{type:'text',placeholder:'旧QRをスキャン',value:oldBarcode,onChange:e=>setOldBarcode(e.target.value),autoFocus:true})),
             h('div',{className:'fg'},h('label',null,'新しいバーコード（新QR）＊'),h('input',{type:'text',placeholder:'新QRをスキャン',value:newBarcode,onChange:e=>setNewBarcode(e.target.value)}))
           )
