@@ -202,8 +202,8 @@ const APP_URL = 'https://trainboy1120-jpg.github.io/qr-app/';
 const BAT_URL = 'https://console.harmony.a2z.com/amzl-bat-tools/';
 
 const REPAIR_ISSUES = [
-  'ジッパー修理：ランナー脱落',
-  'ジッパー修理：引き手脱落',
+  'ジッパー修理：チャック脱落',
+  'ジッパー修理：取っ手脱落',
   'QRコード修理（2枚以上破損）',
 ];
 const DISPOSAL_ISSUES = [
@@ -218,8 +218,8 @@ const DISPOSAL_ISSUES = [
 
 /* BAT Scan Tool マッピング */
 const BAT_MAP = {
-  'ジッパー修理：ランナー脱落':        { scenario: 'Repair',          issue: 'Detached Zip' },
-  'ジッパー修理：引き手脱落':          { scenario: 'Repair',          issue: 'Missing Zip Handle' },
+  'ジッパー修理：チャック脱落':        { scenario: 'Repair',          issue: 'Detached Zip' },
+  'ジッパー修理：取っ手脱落':          { scenario: 'Repair',          issue: 'Missing Zip Handle' },
   'QRコード修理（2枚以上破損）':       { scenario: 'Repair',          issue: 'QR Code Label' },
   '廃棄：底面・底板損傷':              { scenario: 'Damaged',         issue: 'Damage Bottom Wear' },
   '廃棄：ジッパー修理不可':            { scenario: 'Damaged',         issue: 'Unrepairable Zip' },
@@ -431,7 +431,7 @@ function HelpTab(){
               h('div',{className:'help-step-num'},'1'),
               h('div',{className:'help-step-body'},
                 h('div',{className:'help-step-title'},'設置してある QRコードをスキャン'),
-                h('div',{className:'help-step-desc'},'ジッパー修理（ランナー脱落／引き手脱落）のQRを読み取ります。')
+                h('div',{className:'help-step-desc'},'ジッパー修理（チャック脱落／取っ手脱落）のQRを読み取ります。')
               )
             ),
             h('div',{className:'help-step'},
@@ -506,8 +506,8 @@ function HelpTab(){
           h('div',{className:'help-action-icon'},'🔧'),
           h('div',{className:'help-action-name'},'修理'),
           h('ul',{className:'help-action-list'},
-            li('ジッパー修理：ランナー脱落'),
-            li('ジッパー修理：引き手脱落'),
+            li('ジッパー修理：チャック脱落'),
+            li('ジッパー修理：取っ手脱落'),
             li('QRコード修理（2枚以上破損）')
           )
         ),
@@ -544,8 +544,8 @@ function HelpTab(){
           h('th',null,'アクション'),h('th',null,'Scenario'),h('th',null,'Issue/手順')
         )),
         h('tbody',null,
-          h('tr',null,h('td',null,'🔧 修理（ランナー脱落）'),h('td',null,'Repair'),h('td',null,'Detached Zip')),
-          h('tr',null,h('td',null,'🔧 修理（引き手脱落）'),h('td',null,'Repair'),h('td',null,'Missing Zip Handle')),
+          h('tr',null,h('td',null,'🔧 修理（チャック脱落）'),h('td',null,'Repair'),h('td',null,'Detached Zip')),
+          h('tr',null,h('td',null,'🔧 修理（取っ手脱落）'),h('td',null,'Repair'),h('td',null,'Missing Zip Handle')),
           h('tr',null,h('td',null,'🔧 QRコード修理'),h('td',null,'Repair'),h('td',null,'QR Code Label')),
           h('tr',null,h('td',null,'🗑 廃棄（底面損傷）'),h('td',null,'Damaged'),h('td',null,'Damage Bottom Wear')),
           h('tr',null,h('td',null,'🗑 廃棄（ジッパー不可）'),h('td',null,'Damaged'),h('td',null,'Unrepairable Zip')),
