@@ -51,6 +51,8 @@ tr:hover td{background:#fafbfc}
 .td-bag{font-weight:600;font-size:12px;color:#4a5568}
 .td-worker{color:#718096;font-size:12px}
 .td-issue{font-size:12px}
+.del-btn{border:none;background:transparent;color:#cbd5e0;font-size:14px;cursor:pointer;padding:4px 8px;border-radius:4px;line-height:1}
+.del-btn:hover{background:#fee2e2;color:#dc2626}
 .td-memo{color:#a0aec0;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
 .badge-r{background:#dcfce7;color:#166534}
@@ -792,6 +794,18 @@ function App(){
     notify('✓ 記録しました');
   };
 
+  const handleDelete=async log=>{
+    const d=parse(log);
+    const label=(d.action||'')+' ／ '+(d.action==='QR貼り換え'
+      ?((d.old_barcode||'—')+' → '+(d.new_barcode||'—'))
+      :(d.bag_id||'ID未入力'))+' ／ '+fmtDT(log.scanned_at);
+    if(!window.confirm('この記録を削除しますか？\n\n'+label+'\n\n※この操作は取り消せません'))return;
+    const{error}=await supabase.from('scan_logs').delete().eq('id',log.id);
+    if(error){notify('エラー: '+error.message);return;}
+    await fetchLogs();
+    notify('✓ 削除しました');
+  };
+
   const todayDate=new Date().toDateString();
   const todayLogs=logs.filter(l=>new Date(l.scanned_at).toDateString()===todayDate);
   const todayR=todayLogs.filter(l=>{try{return JSON.parse(l.comment).action==='修理';}catch{return false;}}).length;
@@ -860,7 +874,7 @@ function App(){
             :h('table',null,
               h('thead',null,h('tr',null,
                 h('th',null,'日時'),h('th',null,'アクション'),h('th',null,'詳細'),
-                h('th',{className:'hide-sp'},'バーコード'),h('th',{className:'hide-sp'},'作業者'),h('th',{className:'hide-sp'},'メモ'))),
+                h('th',{className:'hide-sp'},'バーコード'),h('th',{className:'hide-sp'},'作業者'),h('th',{className:'hide-sp'},'メモ'),h('th',{style:{width:44}},''))),
               h('tbody',null,filtered.map(log=>{
                 const d=parse(log);
                 const isSwap=d.action==='QR貼り換え';
@@ -874,7 +888,7 @@ function App(){
                   h('td',null,h('span',{className:'td-issue'},isSwap?'Barcode Mapping':d.issue)),
                   h('td',{className:'hide-sp'},barcodeCell),
                   h('td',{className:'hide-sp'},h('span',{className:'td-worker'},log.worker_name||'—')),
-                  h('td',{className:'hide-sp'},h('span',{className:'td-memo',title:d.memo},d.memo||'')));
+                  h('td',{className:'hide-sp'},h('span',{className:'td-memo',title:d.memo},d.memo||'')),h('td',null,h('button',{className:'del-btn',title:'この記録を削除',onClick:()=>handleDelete(log)},'✕')));
               })))
         )
       ),
