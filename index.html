@@ -70,6 +70,38 @@ tr:hover td{background:#fafbfc}
 .bar-s{background:#7c3aed}
 .chart-n{font-size:12px;font-weight:600;color:#4a5568;width:28px;text-align:right}
 .chart-sep{height:1px;background:#f0f4f8;margin:1rem 0}
+/* 統計: 期間切替（日別 / 週別 / 月別） */
+.stats-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:.9rem 1.25rem;border-bottom:1px solid #f0f4f8}
+.seg{display:inline-flex;background:#f0f4f8;border:1px solid #e2e8f0;border-radius:8px;padding:3px;gap:2px}
+.seg button{padding:6px 18px;border:none;background:transparent;border-radius:6px;font-size:12px;font-weight:600;color:#718096;cursor:pointer;font-family:inherit;transition:all .12s}
+.seg button.on{background:#fff;color:#0F6E56;box-shadow:0 1px 3px rgba(15,25,40,.14)}
+.copy-btn{padding:5px 12px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:#4a5568;cursor:pointer;font-family:inherit}
+.copy-btn:hover{background:#f7fafc}
+.stats-note{font-size:11px;color:#a0aec0;margin-left:auto}
+.trend{padding:1.1rem 1.25rem}
+.legend{display:flex;align-items:center;gap:14px;margin-bottom:.9rem;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#718096;font-weight:600}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.trend-row{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:none;border-radius:6px;padding:6px;margin-bottom:2px;cursor:pointer;font-family:inherit;text-align:left}
+.trend-row:hover{background:#f7fafc}
+.trend-row.on{background:#f0fdf4;box-shadow:inset 0 0 0 1px #bbf7d0}
+.trend-label{font-size:12px;color:#1a202c;font-weight:600;width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trend-sub{color:#a0aec0;font-weight:500;font-size:11px;margin-left:5px}
+.trend-bar-bg{flex:1;height:10px;background:#f0f4f8;border-radius:5px;overflow:hidden;display:flex}
+.trend-seg{height:100%}
+.trend-n{font-size:12px;font-weight:700;color:#1a202c;width:34px;text-align:right}
+.trend-n.zero{color:#cbd5e0;font-weight:500}
+.bd-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.9rem}
+.bd-title{font-size:13px;font-weight:700;color:#1a202c}
+.bd-delta{font-size:11px;font-weight:700;padding:1px 9px;border-radius:20px;background:#f7fafc;color:#718096}
+.bd-up{background:#fef2f2;color:#b91c1c}
+.bd-down{background:#f0fdf4;color:#166534}
+.link-btn{background:none;border:none;color:#0F6E56;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0;margin-left:auto}
+.bd-nums{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:1.1rem;padding-bottom:.9rem;border-bottom:1px solid #f0f4f8}
+.bd-num-label{font-size:10px;color:#a0aec0;font-weight:700;letter-spacing:.04em;margin-bottom:3px}
+.bd-num-val{font-size:22px;font-weight:700;line-height:1}
+.bar-o{background:#a0aec0}
+.more-bar{padding:.9rem;text-align:center;border-top:1px solid #f0f4f8}
 /* QR一覧 */
 .qr-section-title{font-size:11px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.05em;margin:1.25rem 0 .75rem;padding-left:2px}
 .qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:1.5rem}
@@ -188,7 +220,7 @@ tr:hover td{background:#fafbfc}
 .bat-reg-total{font-size:12px;color:#718096;font-weight:600}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:9999;pointer-events:none;animation:fadeup .2s}
 @keyframes fadeup{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
-@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}.hide-sp{display:none}.chart-label{width:130px}.qr-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}.hide-sp{display:none}.chart-label{width:130px}.trend-label{width:96px}.bd-nums{gap:16px}.qr-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -251,6 +283,63 @@ const parse=log=>{
   }catch{
     return{bag_id:'—',issue:log.comment||'—',action:'—',memo:''};
   }
+};
+
+/* ===== 統計: 期間集計（日別 / 週別 / 月別） ===== */
+const P2=n=>String(n).padStart(2,'0');
+const WDAY=['日','月','火','水','木','金','土'];
+const PERIODS=[{id:'day',label:'日別'},{id:'week',label:'週別'},{id:'month',label:'月別'}];
+const PREV_LABEL={day:'前日比',week:'前週比',month:'前月比'};
+/* 推移に表示する期間数（新しい順） */
+const MAX_BUCKETS={day:14,week:8,month:6};
+const dayStart=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+/* 週は日曜始まり（Amazonウィーク） */
+const weekStart=d=>{const s=dayStart(d);s.setDate(s.getDate()-s.getDay());return s;};
+/* Amazonウィーク番号: 1/1を含む週をW1（2026: W32=8/2〜8/8, W38=9/13〜9/19 で検証済み） */
+const amznWeek=d=>{
+  const s=weekStart(d),y=s.getFullYear();
+  if(s.getTime()>=weekStart(new Date(y+1,0,1)).getTime())return{y:y+1,w:1};
+  return{y,w:Math.round((s.getTime()-weekStart(new Date(y,0,1)).getTime())/6048e5)+1};
+};
+/* 同じ期間なら同じ文字列になるキー */
+const bucketKey=(d,mode)=>{
+  if(mode==='month')return 'M'+d.getFullYear()+'-'+P2(d.getMonth()+1);
+  if(mode==='week'){const w=amznWeek(d);return 'W'+w.y+'-'+P2(w.w);}
+  return 'D'+d.getFullYear()+'-'+P2(d.getMonth()+1)+'-'+P2(d.getDate());
+};
+/* from〜to を新しい順に並べた期間リスト（記録0の期間も欠けさせない） */
+const bucketList=(mode,from,to)=>{
+  const out=[];
+  if(mode==='month'){
+    let c=new Date(to.getFullYear(),to.getMonth(),1);
+    const f=new Date(from.getFullYear(),from.getMonth(),1);
+    while(c>=f){out.push({key:bucketKey(c,mode),label:c.getFullYear()+'年'+(c.getMonth()+1)+'月',sub:''});c=new Date(c.getFullYear(),c.getMonth()-1,1);}
+  }else if(mode==='week'){
+    let c=weekStart(to);const f=weekStart(from);
+    while(c>=f){
+      const e=new Date(c.getFullYear(),c.getMonth(),c.getDate()+6);
+      out.push({key:bucketKey(c,mode),label:'W'+amznWeek(c).w,sub:(c.getMonth()+1)+'/'+c.getDate()+'〜'+(e.getMonth()+1)+'/'+e.getDate()});
+      c=new Date(c.getFullYear(),c.getMonth(),c.getDate()-7);
+    }
+  }else{
+    let c=dayStart(to);const f=dayStart(from);
+    while(c>=f){out.push({key:bucketKey(c,mode),label:(c.getMonth()+1)+'/'+c.getDate(),sub:'('+WDAY[c.getDay()]+')'});c=new Date(c.getFullYear(),c.getMonth(),c.getDate()-1);}
+  }
+  return out;
+};
+const EMPTY_CNT={r:0,d:0,s:0,t:0};
+/* 期間キー別のアクション件数 */
+const countByBucket=(logs,mode)=>{
+  const m={};
+  logs.forEach(l=>{
+    if(!l.scanned_at)return;
+    const k=bucketKey(new Date(l.scanned_at),mode);
+    const o=m[k]||(m[k]={r:0,d:0,s:0,t:0});
+    const a=parse(l).action;
+    if(a==='修理')o.r++;else if(a==='廃棄')o.d++;else if(a==='QR貼り換え')o.s++;
+    o.t++;
+  });
+  return m;
 };
 
 function getParams(){
@@ -377,7 +466,7 @@ function HelpTab(){
       h('div',{className:'help-h2'},'📋 このアプリでできること'),
       h('p',{style:{fontSize:12,color:'#4a5568',lineHeight:1.7}},
         'バッグ修理作業の記録をリアルタイムで管理するアプリです。',h('br'),
-        '修理・廃棄・QR貼り換えの3種類の作業を記録し、統計を確認できます。',h('br'),
+        '修理・廃棄・QR貼り換えの3種類の作業を記録し、統計を日別・週別・月別で確認できます。',h('br'),
         'QR一覧のQRコードをスキャンすると、すぐに登録画面が開きます。'
       )
     ),
@@ -754,10 +843,133 @@ function BatRegisterTab({logs}){
   );
 }
 
+/* 統計タブ — 日別/週別/月別の推移 ＋ 選択した期間の内訳 */
+function StatsTab({logs}){
+  const h=(t,p,...c)=>React.createElement(t,p,...c);
+  const[mode,setMode]=useState('day');
+  const[sel,setSel]=useState(null);   /* null=最新期間 / 'ALL'=全期間 / それ以外=期間キー */
+  const[extra,setExtra]=useState(0);  /* 既定より前の期間を追加表示する数 */
+  const[copied,setCopied]=useState(false);
+
+  const dated=logs.filter(l=>l.scanned_at);
+  if(dated.length===0)return h('div',{className:'card'},h('div',{className:'empty'},'データがありません'));
+
+  const times=dated.map(l=>new Date(l.scanned_at).getTime());
+  const oldest=new Date(Math.min(...times));
+  const newest=new Date(Math.max(...times));
+  const now=new Date();
+  const to=newest>now?newest:now;   /* 先の日付の記録があっても表から漏れないように */
+  const all=bucketList(mode,oldest,to);
+  const shown=all.slice(0,MAX_BUCKETS[mode]+extra);
+  const cnt=countByBucket(dated,mode);
+  const cntOf=k=>cnt[k]||EMPTY_CNT;
+  const curKey=sel===null?(shown[0]?shown[0].key:null):sel;
+  const maxT=Math.max(...shown.map(b=>cntOf(b.key).t),1);
+
+  /* 内訳の対象ログと前期間比 */
+  const target=curKey==='ALL'?dated:dated.filter(l=>bucketKey(new Date(l.scanned_at),mode)===curKey);
+  const curB=all.find(b=>b.key===curKey);
+  const idx=all.findIndex(b=>b.key===curKey);
+  const prevB=idx>=0?all[idx+1]:null;
+  const delta=(curKey==='ALL'||!prevB)?null:target.length-cntOf(prevB.key).t;
+  const cur=curKey==='ALL'
+    ?dated.reduce((o,l)=>{const a=parse(l).action;if(a==='修理')o.r++;else if(a==='廃棄')o.d++;else if(a==='QR貼り換え')o.s++;o.t++;return o;},{r:0,d:0,s:0,t:0})
+    :cntOf(curKey);
+
+  const issueStats={};
+  target.forEach(l=>{const d=parse(l);if(d.issue&&d.issue!=='—')issueStats[d.issue]=(issueStats[d.issue]||0)+1;});
+  const maxN=Math.max(...Object.values(issueStats),1);
+  const ent=Object.entries(issueStats);
+  const byN=(a,b)=>b[1]-a[1];
+  const repairStats=ent.filter(([k])=>REPAIR_ISSUES.includes(k)).sort(byN);
+  const disposalStats=ent.filter(([k])=>DISPOSAL_ISSUES.includes(k)).sort(byN);
+  const swapStats=ent.filter(([k])=>k==='QR貼り換え').sort(byN);
+  /* 現行リストに無い項目（旧ラベル等）も黙って落とさず表示する */
+  const otherStats=ent.filter(([k])=>!REPAIR_ISSUES.includes(k)&&!DISPOSAL_ISSUES.includes(k)&&k!=='QR貼り換え').sort(byN);
+
+  const copyTable=async()=>{
+    const rows=[['期間','修理','廃棄','QR貼り換え','合計']];
+    shown.slice().reverse().forEach(b=>{const c=cntOf(b.key);rows.push([(b.label+' '+b.sub).trim(),c.r,c.d,c.s,c.t]);});
+    const tsv=rows.map(r=>r.join('\t')).join('\n');
+    try{
+      await navigator.clipboard.writeText(tsv);
+    }catch{
+      const ta=document.createElement('textarea');ta.value=tsv;document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');}catch{}
+      ta.remove();
+    }
+    setCopied(true);setTimeout(()=>setCopied(false),1600);
+  };
+
+  const seg=(w,cls)=>w>0&&h('div',{className:'trend-seg '+cls,style:{width:w+'%'}});
+  const group=(title,arr,cls)=>arr.length>0&&h('div',null,
+    h('div',{className:'chart-title'},title),
+    arr.map(([issue,n])=>h('div',{key:issue,className:'chart-row'},
+      h('div',{className:'chart-label',title:issue},issue),
+      h('div',{className:'chart-bar-bg'},h('div',{className:'chart-bar '+cls,style:{width:(n/maxN*100)+'%'}})),
+      h('div',{className:'chart-n'},n)))
+  );
+  const groups=[
+    group('🔧 修理',repairStats,'bar-r'),
+    group('🗑 廃棄',disposalStats,'bar-d'),
+    group('↔ QR貼り換え',swapStats,'bar-s'),
+    group('その他（旧ラベル等）',otherStats,'bar-o')
+  ].filter(Boolean);
+
+  return h('div',null,
+    h('div',{className:'card'},
+      h('div',{className:'stats-bar'},
+        h('div',{className:'seg'},PERIODS.map(p=>h('button',{key:p.id,className:mode===p.id?'on':'',onClick:()=>{setMode(p.id);setSel(null);setExtra(0);}},p.label))),
+        h('button',{className:'copy-btn',onClick:copyTable},copied?'✓ コピーしました':'📋 表をコピー'),
+        h('span',{className:'stats-note'},'全'+dated.length+'件（'+(oldest.getMonth()+1)+'/'+oldest.getDate()+'〜'+(newest.getMonth()+1)+'/'+newest.getDate()+'）')
+      ),
+      h('div',{className:'trend'},
+        h('div',{className:'legend'},
+          h('span',null,h('i',{style:{background:'#0F6E56'}}),'修理'),
+          h('span',null,h('i',{style:{background:'#dc2626'}}),'廃棄'),
+          h('span',null,h('i',{style:{background:'#7c3aed'}}),'QR貼り換え'),
+          h('span',{style:{marginLeft:'auto',color:'#cbd5e0'}},'行をタップすると下に内訳')
+        ),
+        shown.map(b=>{
+          const c=cntOf(b.key);
+          return h('button',{key:b.key,className:'trend-row'+(b.key===curKey?' on':''),onClick:()=>setSel(b.key)},
+            h('div',{className:'trend-label'},b.label,b.sub&&h('span',{className:'trend-sub'},b.sub)),
+            h('div',{className:'trend-bar-bg'},seg(c.r/maxT*100,'bar-r'),seg(c.d/maxT*100,'bar-d'),seg(c.s/maxT*100,'bar-s')),
+            h('div',{className:'trend-n'+(c.t===0?' zero':'')},c.t)
+          );
+        }),
+        all.length>shown.length&&h('div',{className:'more-bar'},
+          h('button',{className:'btn',onClick:()=>setExtra(x=>x+MAX_BUCKETS[mode])},'さらに前を表示（残り'+(all.length-shown.length)+'期間）'))
+      )
+    ),
+    h('div',{className:'card',style:{marginTop:'1rem'}},
+      h('div',{className:'chart-section'},
+        h('div',{className:'bd-head'},
+          h('span',{className:'bd-title'},curKey==='ALL'?'全期間の内訳':((curB?(curB.label+' '+curB.sub).trim():'—')+' の内訳')),
+          delta!==null&&h('span',{className:'bd-delta'+(delta>0?' bd-up':delta<0?' bd-down':'')},PREV_LABEL[mode]+' '+(delta>0?'+':'')+delta+'件'),
+          curKey==='ALL'
+            ?h('button',{className:'link-btn',onClick:()=>setSel(null)},'最新の期間に戻す')
+            :h('button',{className:'link-btn',onClick:()=>setSel('ALL')},'全期間の内訳を見る')
+        ),
+        h('div',{className:'bd-nums'},
+          h('div',null,h('div',{className:'bd-num-label'},'修理'),h('div',{className:'bd-num-val val-green'},cur.r)),
+          h('div',null,h('div',{className:'bd-num-label'},'廃棄'),h('div',{className:'bd-num-val val-red'},cur.d)),
+          h('div',null,h('div',{className:'bd-num-label'},'QR貼り換え'),h('div',{className:'bd-num-val val-purple'},cur.s)),
+          h('div',null,h('div',{className:'bd-num-label'},'合計'),h('div',{className:'bd-num-val'},cur.t))
+        ),
+        groups.length===0
+          ?h('div',{className:'empty'},'この期間の記録はありません')
+          :h('div',null,groups.map((g,i)=>h('div',{key:i},g,i<groups.length-1&&h('div',{className:'chart-sep'}))))
+      )
+    )
+  );
+}
+
 function App(){
   const[logs,setLogs]=useState([]);
   const[tab,setTab]=useState('list');
   const[filter,setFilter]=useState('all');
+  const[listMax,setListMax]=useState(200);
   const[showAdd,setShowAdd]=useState(false);
   const[initParams,setInitParams]=useState({action:null,issue:null});
   const[toast,setToast]=useState(null);
@@ -766,7 +978,7 @@ function App(){
   const h=(t,p,...c)=>React.createElement(t,p,...c);
 
   const fetchLogs=useCallback(async()=>{
-    const{data}=await supabase.from('scan_logs').select('*').order('scanned_at',{ascending:false}).limit(500);
+    const{data}=await supabase.from('scan_logs').select('*').order('scanned_at',{ascending:false}).limit(3000);
     if(data)setLogs(data);
   },[]);
 
@@ -822,15 +1034,7 @@ function App(){
     }catch{return filter==='all';}
   });
 
-  const issueStats={};
-  logs.forEach(l=>{
-    const d=parse(l);
-    if(d.issue&&d.issue!=='—')issueStats[d.issue]=(issueStats[d.issue]||0)+1;
-  });
-  const maxN=Math.max(...Object.values(issueStats),1);
-  const repairStats=Object.entries(issueStats).filter(([k])=>REPAIR_ISSUES.includes(k)).sort((a,b)=>b[1]-a[1]);
-  const disposalStats=Object.entries(issueStats).filter(([k])=>DISPOSAL_ISSUES.includes(k)).sort((a,b)=>b[1]-a[1]);
-  const swapStats=Object.entries(issueStats).filter(([k])=>k==='QR貼り換え').sort((a,b)=>b[1]-a[1]);
+  const visible=filtered.slice(0,listMax);
 
   if(loading)return h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',color:'#718096'}},'読み込み中...');
 
@@ -871,11 +1075,12 @@ function App(){
         h('div',{className:'card'},
           filtered.length===0
             ?h('div',{className:'empty'},'記録がありません')
-            :h('table',null,
+            :h(React.Fragment,null,
+              h('table',null,
               h('thead',null,h('tr',null,
                 h('th',null,'日時'),h('th',null,'アクション'),h('th',null,'詳細'),
                 h('th',{className:'hide-sp'},'バーコード'),h('th',{className:'hide-sp'},'作業者'),h('th',{className:'hide-sp'},'メモ'),h('th',{style:{width:44}},''))),
-              h('tbody',null,filtered.map(log=>{
+              h('tbody',null,visible.map(log=>{
                 const d=parse(log);
                 const isSwap=d.action==='QR貼り換え';
                 const badgeCls='badge '+(d.action==='修理'?'badge-r':d.action==='廃棄'?'badge-d':'badge-s');
@@ -889,38 +1094,13 @@ function App(){
                   h('td',{className:'hide-sp'},barcodeCell),
                   h('td',{className:'hide-sp'},h('span',{className:'td-worker'},log.worker_name||'—')),
                   h('td',{className:'hide-sp'},h('span',{className:'td-memo',title:d.memo},d.memo||'')),h('td',null,h('button',{className:'del-btn',title:'この記録を削除',onClick:()=>handleDelete(log)},h('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d:'M3 6h18'}),h('path',{d:'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'}),h('path',{d:'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6'}),h('line',{x1:10,y1:11,x2:10,y2:17}),h('line',{x1:14,y1:11,x2:14,y2:17})))));
-              })))
+              }))),
+              filtered.length>visible.length&&h('div',{className:'more-bar'},
+                h('button',{className:'btn',onClick:()=>setListMax(m=>m+200)},'さらに表示（残り'+(filtered.length-visible.length)+'件）'))
+            )
         )
       ),
-      tab==='stats'&&h('div',{className:'card'},
-        Object.keys(issueStats).length===0
-          ?h('div',{className:'empty'},'データがありません')
-          :h('div',{className:'chart-section'},
-            repairStats.length>0&&h('div',null,
-              h('div',{className:'chart-title'},'🔧 修理'),
-              repairStats.map(([issue,n])=>h('div',{key:issue,className:'chart-row'},
-                h('div',{className:'chart-label',title:issue},issue),
-                h('div',{className:'chart-bar-bg'},h('div',{className:'chart-bar bar-r',style:{width:(n/maxN*100)+'%'}})),
-                h('div',{className:'chart-n'},n))),
-              (disposalStats.length>0||swapStats.length>0)&&h('div',{className:'chart-sep'})
-            ),
-            disposalStats.length>0&&h('div',null,
-              h('div',{className:'chart-title'},'🗑 廃棄'),
-              disposalStats.map(([issue,n])=>h('div',{key:issue,className:'chart-row'},
-                h('div',{className:'chart-label',title:issue},issue),
-                h('div',{className:'chart-bar-bg'},h('div',{className:'chart-bar bar-d',style:{width:(n/maxN*100)+'%'}})),
-                h('div',{className:'chart-n'},n))),
-              swapStats.length>0&&h('div',{className:'chart-sep'})
-            ),
-            swapStats.length>0&&h('div',null,
-              h('div',{className:'chart-title'},'↔ QR貼り換え'),
-              swapStats.map(([issue,n])=>h('div',{key:issue,className:'chart-row'},
-                h('div',{className:'chart-label',title:issue},issue),
-                h('div',{className:'chart-bar-bg'},h('div',{className:'chart-bar bar-s',style:{width:(n/maxN*100)+'%'}})),
-                h('div',{className:'chart-n'},n)))
-            )
-          )
-      ),
+      tab==='stats'&&React.createElement(StatsTab,{logs}),
       tab==='qr'&&React.createElement(QRListTab),
       tab==='bat'&&React.createElement(BatRegisterTab,{logs}),
       tab==='help'&&React.createElement(HelpTab)
