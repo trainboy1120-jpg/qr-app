@@ -69,6 +69,8 @@ tr:hover td{background:#fafbfc}
 .bar-d{background:#dc2626}
 .bar-s{background:#7c3aed}
 .chart-n{font-size:12px;font-weight:600;color:#4a5568;width:28px;text-align:right}
+.chart-pct{font-size:11px;font-weight:600;color:#a0aec0;width:40px;text-align:right;flex-shrink:0}
+.chart-tot{font-size:10px;font-weight:600;color:#a0aec0;letter-spacing:0;text-transform:none;margin-left:8px}
 .chart-sep{height:1px;background:#f0f4f8;margin:1rem 0}
 /* 統計: 期間切替（日別 / 週別 / 月別） */
 .stats-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:.9rem 1.25rem;border-bottom:1px solid #f0f4f8}
@@ -876,16 +878,18 @@ function StatsTab({logs}){
     ?dated.reduce((o,l)=>{const a=parse(l).action;if(a==='修理')o.r++;else if(a==='廃棄')o.d++;else if(a==='QR貼り換え')o.s++;o.t++;return o;},{r:0,d:0,s:0,t:0})
     :cntOf(curKey);
 
-  const issueStats={};
-  target.forEach(l=>{const d=parse(l);if(d.issue&&d.issue!=='—')issueStats[d.issue]=(issueStats[d.issue]||0)+1;});
-  const maxN=Math.max(...Object.values(issueStats),1);
-  const ent=Object.entries(issueStats);
+  /* 内訳はアクション別に集計する（issueリストに無い旧ラベルも該当グループに入り、上の数字と必ず一致する） */
+  const byAction={'修理':{},'廃棄':{},'QR貼り換え':{},'その他':{}};
+  target.forEach(l=>{
+    const d=parse(l);
+    const a=byAction[d.action]?d.action:'その他';
+    const iss=(d.issue&&d.issue!=='—')?d.issue:'(項目未入力)';
+    byAction[a][iss]=(byAction[a][iss]||0)+1;
+  });
   const byN=(a,b)=>b[1]-a[1];
-  const repairStats=ent.filter(([k])=>REPAIR_ISSUES.includes(k)).sort(byN);
-  const disposalStats=ent.filter(([k])=>DISPOSAL_ISSUES.includes(k)).sort(byN);
-  const swapStats=ent.filter(([k])=>k==='QR貼り換え').sort(byN);
-  /* 現行リストに無い項目（旧ラベル等）も黙って落とさず表示する */
-  const otherStats=ent.filter(([k])=>!REPAIR_ISSUES.includes(k)&&!DISPOSAL_ISSUES.includes(k)&&k!=='QR貼り換え').sort(byN);
+  const sorted=a=>Object.entries(byAction[a]).sort(byN);
+  const repairStats=sorted('修理'),disposalStats=sorted('廃棄'),swapStats=sorted('QR貼り換え'),otherStats=sorted('その他');
+  const maxN=Math.max(...[].concat(repairStats,disposalStats,swapStats,otherStats).map(x=>x[1]),1);
 
   const copyTable=async()=>{
     const rows=[['期間','修理','廃棄','QR貼り換え','合計']];
@@ -902,18 +906,23 @@ function StatsTab({logs}){
   };
 
   const seg=(w,cls)=>w>0&&h('div',{className:'trend-seg '+cls,style:{width:w+'%'}});
-  const group=(title,arr,cls)=>arr.length>0&&h('div',null,
-    h('div',{className:'chart-title'},title),
-    arr.map(([issue,n])=>h('div',{key:issue,className:'chart-row'},
-      h('div',{className:'chart-label',title:issue},issue),
-      h('div',{className:'chart-bar-bg'},h('div',{className:'chart-bar '+cls,style:{width:(n/maxN*100)+'%'}})),
-      h('div',{className:'chart-n'},n)))
-  );
+  const group=(title,arr,cls)=>{
+    if(arr.length===0)return null;
+    const tot=arr.reduce((s,x)=>s+x[1],0);   /* 割合の母数はそのグループ（修理内・廃棄内）の合計 */
+    return h('div',null,
+      h('div',{className:'chart-title'},title,h('span',{className:'chart-tot'},'計 '+tot+'件')),
+      arr.map(([issue,n])=>h('div',{key:issue,className:'chart-row'},
+        h('div',{className:'chart-label',title:issue},issue),
+        h('div',{className:'chart-bar-bg'},h('div',{className:'chart-bar '+cls,style:{width:(n/maxN*100)+'%'}})),
+        h('div',{className:'chart-n'},n),
+        h('div',{className:'chart-pct',title:n+'/'+tot},Math.round(n/tot*100)+'%')))
+    );
+  };
   const groups=[
     group('🔧 修理',repairStats,'bar-r'),
     group('🗑 廃棄',disposalStats,'bar-d'),
     group('↔ QR貼り換え',swapStats,'bar-s'),
-    group('その他（旧ラベル等）',otherStats,'bar-o')
+    group('その他（アクション不明）',otherStats,'bar-o')
   ].filter(Boolean);
 
   return h('div',null,
